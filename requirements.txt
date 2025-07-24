@@ -5,3 +5,5 @@ nltk
 joblib
 openpyxl
 scikit-learn
+gspread
+oauth2client
