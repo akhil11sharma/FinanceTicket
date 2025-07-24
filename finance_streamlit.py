@@ -7,6 +7,8 @@ from datetime import datetime
 import os
 import re
 import nltk
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 import time # Import time for a small delay for visual effect
 
 # --- Streamlit Page Configuration (Must be the first Streamlit command) ---
@@ -451,8 +453,8 @@ if st.session_state.is_processing:
     )
     # Perform the heavy computation
     result = classify_complaint(st.session_state.current_complaint_text)
-    log_to_excel(result) # Log to main Excel
-    log_to_department_excel(result) # Log to department-specific Excel
+    log_to_gsheet(result)
+
 
     st.session_state.last_result = result # Store for display
     st.session_state.highlighted_dept = result["Predicted Department"] # Set for highlighting
@@ -488,22 +490,49 @@ st.markdown('<h2>Recent Complaints Log</h2>', unsafe_allow_html=True)
 
 # Function to load recent complaints for display (limited to 10)
 @st.cache_data(ttl=5) # Cache data for 5 seconds to avoid constant re-reading
-def get_recent_complaints(filename="complaints_received.xlsx", num_complaints=10):
-    if os.path.exists(filename):
-        try:
-            df_complaints = pd.read_excel(filename)
-            # Ensure Timestamp is datetime and sort
-            df_complaints['Timestamp'] = pd.to_datetime(df_complaints['Timestamp'])
-            df_complaints = df_complaints.sort_values(by='Timestamp', ascending=False)
-            return df_complaints.head(num_complaints) # Limit to top N complaints
-        except Exception as e:
-            st.error(f"Error loading recent complaints: {e}")
-            return pd.DataFrame() # Return empty DataFrame on error
-    return pd.DataFrame() # Return empty DataFrame if file doesn't exist
+@st.cache_data(ttl=5)
+def get_recent_complaints_from_gsheet(sheet_url="https://docs.google.com/spreadsheets/d/1kVkSOaR8ffzTwQThoR53gLhWUpeGzcwEf2lWkTQiDck/edit", num_complaints=10):
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    creds = ServiceAccountCredentials.from_json_keyfile_name("shaped-fx-418515-95c6e650b4b3.json", scope)
+    client = gspread.authorize(creds)
+    
+    sheet = client.open_by_url(sheet_url).sheet1
+    data = sheet.get_all_records()
+    
+    df = pd.DataFrame(data)
+    if not df.empty and "Timestamp" in df.columns:
+        df["Timestamp"] = pd.to_datetime(df["Timestamp"], errors='coerce')
+        df = df.sort_values("Timestamp", ascending=False)
+        return df.head(num_complaints)
+    else:
+        return pd.DataFrame()
 
-# We want 9 recent complaints + the one just submitted (if any)
-recent_complaints_df = get_recent_complaints(num_complaints=9)
+def log_to_gsheet(data, sheet_url="https://docs.google.com/spreadsheets/d/1kVkSOaR8ffzTwQThoR53gLhWUpeGzcwEf2lWkTQiDck/edit"):
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    creds = ServiceAccountCredentials.from_json_keyfile_name("shaped-fx-418515-95c6e650b4b3.json", scope)
+    client = gspread.authorize(creds)
 
+    spreadsheet = client.open_by_url(sheet_url)
+    sheet = spreadsheet.sheet1
+
+    # Add the new row of complaint data
+    sheet.append_row([
+        data["Complaint"],
+        data["Sentiment"],
+        data["Score"],
+        data["Predicted Department"],
+        data["Checked Twice"],
+        data["Timestamp"]
+    ])
+
+# --- Load and Display Recent Complaints Log ---
+st.markdown("---")
+st.markdown('<h2>Recent Complaints Log</h2>', unsafe_allow_html=True)
+
+# Load data from Google Sheet
+recent_complaints_df = get_recent_complaints_from_gsheet()
+
+# Display data if available
 if not recent_complaints_df.empty:
     # Display only relevant columns for the UI
     display_df = recent_complaints_df[[
@@ -518,7 +547,7 @@ if not recent_complaints_df.empty:
 else:
     st.info("No complaints submitted yet.")
 
-# Optional: Add a refresh button for the complaints log (useful for multi-user scenarios)
+# Optional: Refresh button
 if st.button("Refresh Complaints Log", key="refresh_log_button"):
-    st.cache_data.clear() # Clear cache to force reload
-    st.rerun() # Rerun the app to refresh data
+    st.cache_data.clear()  # Clear cached data
+    st.rerun()  # Force rerun to refresh log
