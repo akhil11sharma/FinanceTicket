@@ -7,74 +7,10 @@ from datetime import datetime
 import os
 import re
 import nltk
-from google.oauth2 import service_account
-import gspread
-import time
+import time # Import time for a small delay for visual effect
 
 # --- Streamlit Page Configuration (Must be the first Streamlit command) ---
 st.set_page_config(layout="centered", page_title="Complaint Classification App")
-
-# ✅ Google Sheets Client using Streamlit Secrets
-@st.cache_resource
-def get_gsheet_client():
-    try:
-        creds_dict = st.secrets["gcp_service_account"]
-        creds = service_account.Credentials.from_service_account_info(creds_dict, scopes=[
-            "https://www.googleapis.com/auth/spreadsheets",
-            "https://www.googleapis.com/auth/drive"
-        ])
-        return gspread.authorize(creds)
-    except Exception as e:
-        st.error(f"Authentication error with Google Sheets. Please check your `gcp_service_account` secret in Streamlit: {e}")
-        st.stop() # Stop the app if authentication fails
-
-# ✅ Load recent complaints
-@st.cache_data(ttl=5)
-def get_recent_complaints_from_gsheet(sheet_url="https://docs.google.com/spreadsheets/d/1kVkSOaR8ffzTwQThoR53gLhWUpeGzcwEf2lWkTQiDck/edit", num_complaints=10):
-    client = get_gsheet_client()
-    try:
-        sheet = client.open_by_url(sheet_url).sheet1
-        data = sheet.get_all_records()
-
-        df = pd.DataFrame(data)
-        if not df.empty and "Timestamp" in df.columns:
-            df["Timestamp"] = pd.to_datetime(df["Timestamp"], errors='coerce')
-            df = df.sort_values("Timestamp", ascending=False)
-            return df.head(num_complaints)
-        else:
-            return pd.DataFrame()
-    except gspread.exceptions.SpreadsheetNotFound:
-        st.error(f"Error: Google Sheet not found at the provided URL: {sheet_url}. Please double-check the URL and ensure the service account has access.")
-        return pd.DataFrame()
-    except gspread.exceptions.APIError as e:
-        st.error(f"Google Sheets API Error: {e}. Check service account permissions for the sheet.")
-        return pd.DataFrame()
-    except Exception as e:
-        st.error(f"An unexpected error occurred while loading complaints from Google Sheet: {e}")
-        return pd.DataFrame()
-
-
-# ✅ Log complaint to sheet
-def log_to_gsheet(data, sheet_url="https://docs.google.com/spreadsheets/d/1kVkSOaR8ffzTwQThoR53gLhWUpeGzcwEf2lWkTQiDck/edit"):
-    client = get_gsheet_client()
-    try:
-        sheet = client.open_by_url(sheet_url).sheet1
-        sheet.append_row([
-            data["Complaint"],
-            data["Sentiment"],
-            data["Score"],
-            data["Predicted Department"],
-            data["Checked Twice"],
-            data["Timestamp"]
-        ])
-        return True # Indicate success
-    except gspread.exceptions.APIError as e:
-        st.error(f"Failed to log to Google Sheet due to API error: {e}. Check permissions.")
-        return False
-    except Exception as e:
-        st.error(f"An unexpected error occurred while logging to Google Sheet: {e}")
-        return False
-
 
 # --- NLTK Downloads (Cached to run only once) ---
 @st.cache_resource
@@ -112,9 +48,6 @@ def load_model_and_vectorizer():
                  "are in the same directory as this script, and run your Jupyter notebook "
                  "to generate them first.")
         st.stop() # Stop the app if files are missing
-    except Exception as e:
-        st.error(f"An error occurred while loading the model or vectorizer: {e}")
-        st.stop()
 model, vectorizer = load_model_and_vectorizer()
 
 # --- Text Preprocessing ---
@@ -228,9 +161,40 @@ def classify_complaint(text):
         "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
 
-# --- New Function: Log to Department-Specific Excel (local storage, not ideal for cloud deployment) ---
-# Removed as it's not suitable for Streamlit Cloud deployment directly without persistent storage.
-# If you need this, consider using cloud storage like S3 or Google Cloud Storage.
+# --- Save to Excel ---
+def log_to_excel(data, filename="complaints_received.xlsx"):
+    df_new = pd.DataFrame([data])
+    if os.path.exists(filename):
+        try:
+            df_old = pd.read_excel(filename)
+            df_combined = pd.concat([df_old, df_new], ignore_index=True)
+        except Exception as e:
+            st.error(f"Error reading or concatenating with existing Excel file: {e}. Creating a new file.")
+            df_combined = df_new
+    else:
+        df_combined = df_new
+    df_combined.to_excel(filename, index=False)
+
+# --- New Function: Log to Department-Specific Excel ---
+def log_to_department_excel(data):
+    predicted_department = data["Predicted Department"]
+    # Sanitize department name for filename (replace problematic chars with underscore)
+    sanitized_dept_name = re.sub(r'[^\w\s-]', '', predicted_department).replace(' ', '_').lower()
+    department_filename = f"{sanitized_dept_name}_complaints.xlsx"
+
+    df_new = pd.DataFrame([data])
+    if os.path.exists(department_filename):
+        try:
+            df_old = pd.read_excel(department_filename)
+            df_combined = pd.concat([df_old, df_new], ignore_index=True)
+        except Exception as e:
+            st.error(f"Error reading or concatenating with existing department Excel file '{department_filename}': {e}. Creating a new file.")
+            df_combined = df_new
+    else:
+        df_combined = df_new
+    df_combined.to_excel(department_filename, index=False)
+    st.info(f"Complaint also logged to '{department_filename}' for the {predicted_department} department.")
+
 
 # --- Streamlit UI ---
 
@@ -487,26 +451,22 @@ if st.session_state.is_processing:
     )
     # Perform the heavy computation
     result = classify_complaint(st.session_state.current_complaint_text)
-    if log_to_gsheet(result): # Only proceed if logging was successful
-        st.session_state.last_result = result # Store for display
-        st.session_state.highlighted_dept = result["Predicted Department"] # Set for highlighting
+    log_to_excel(result) # Log to main Excel
+    log_to_department_excel(result) # Log to department-specific Excel
 
-        # Clear the custom loader
-        loader_placeholder.empty()
+    st.session_state.last_result = result # Store for display
+    st.session_state.highlighted_dept = result["Predicted Department"] # Set for highlighting
 
-        st.success("Complaint submitted and classified!")
+    # Clear the custom loader
+    loader_placeholder.empty()
 
-        # Pause for visual effect, then clear highlight state and processing flag
-        time.sleep(1.5) # Pause for 1.5 seconds to let the glow be seen
-        st.session_state.highlighted_dept = None # Clear highlight state
-        st.session_state.is_processing = False # Reset processing flag
-        st.rerun() # Rerun again to clear the highlight and reset state
-    else:
-        # If logging failed, stop processing and allow user to retry or fix issue
-        loader_placeholder.empty()
-        st.session_state.is_processing = False
-        st.warning("Complaint could not be logged to Google Sheet. Please check the error message above and try again.")
+    st.success("Complaint submitted and classified!")
 
+    # Pause for visual effect, then clear highlight state and processing flag
+    time.sleep(1.5) # Pause for 1.5 seconds to let the glow be seen
+    st.session_state.highlighted_dept = None # Clear highlight state
+    st.session_state.is_processing = False # Reset processing flag
+    st.rerun() # Rerun again to clear the highlight and reset state
 
 # Display last classification result prominently
 if st.session_state.last_result:
@@ -526,9 +486,26 @@ if st.session_state.last_result:
 st.markdown("---")
 st.markdown('<h2>Recent Complaints Log</h2>', unsafe_allow_html=True)
 
-recent_complaints_df = get_recent_complaints_from_gsheet()
+# Function to load recent complaints for display (limited to 10)
+@st.cache_data(ttl=5) # Cache data for 5 seconds to avoid constant re-reading
+def get_recent_complaints(filename="complaints_received.xlsx", num_complaints=10):
+    if os.path.exists(filename):
+        try:
+            df_complaints = pd.read_excel(filename)
+            # Ensure Timestamp is datetime and sort
+            df_complaints['Timestamp'] = pd.to_datetime(df_complaints['Timestamp'])
+            df_complaints = df_complaints.sort_values(by='Timestamp', ascending=False)
+            return df_complaints.head(num_complaints) # Limit to top N complaints
+        except Exception as e:
+            st.error(f"Error loading recent complaints: {e}")
+            return pd.DataFrame() # Return empty DataFrame on error
+    return pd.DataFrame() # Return empty DataFrame if file doesn't exist
+
+# We want 9 recent complaints + the one just submitted (if any)
+recent_complaints_df = get_recent_complaints(num_complaints=9)
 
 if not recent_complaints_df.empty:
+    # Display only relevant columns for the UI
     display_df = recent_complaints_df[[
         'Complaint',
         'Sentiment',
@@ -539,8 +516,9 @@ if not recent_complaints_df.empty:
     ]]
     st.dataframe(display_df, use_container_width=True, hide_index=True)
 else:
-    st.info("No complaints submitted yet or an error occurred fetching them.")
+    st.info("No complaints submitted yet.")
 
+# Optional: Add a refresh button for the complaints log (useful for multi-user scenarios)
 if st.button("Refresh Complaints Log", key="refresh_log_button"):
-    st.cache_data.clear() # Clear cache for both get_recent_complaints_from_gsheet and log_to_gsheet
-    st.rerun()
+    st.cache_data.clear() # Clear cache to force reload
+    st.rerun() # Rerun the app to refresh data
