@@ -1,0 +1,7 @@
+streamlit
+pandas
+textblob
+nltk
+joblib
+openpyxl
+scikit-learn
