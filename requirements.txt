@@ -5,5 +5,7 @@ nltk
 joblib
 openpyxl
 scikit-learn
+pymongo
+plotly
 gspread
 oauth2client
