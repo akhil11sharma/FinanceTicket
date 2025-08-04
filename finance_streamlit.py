@@ -725,7 +725,7 @@ else:
                     unsafe_allow_html=True
                 )
                 time.sleep(1)
-            if username == "Sharma.akhil" and password == "123456789":
+            if (username == "Sharma.akhil" and password == "123456789"):
                 st.session_state.logged_in = True
                 st.session_state.username = username
                 st.sidebar.success("Login successful!")
@@ -757,7 +757,7 @@ if submit_button:
         if (st.session_state.last_logged_complaint_text == normalized_current_complaint and
             st.session_state.last_logged_complaint_timestamp and
             (now - st.session_state.last_logged_complaint_timestamp).total_seconds() < 60):
-            st.warning(" यह शिकायत हाल ही में सबमिट की गई है। कृपया कुछ देर बाद कोशिश करें या एक नई शिकायत दर्ज करें। (This complaint has been submitted recently. Please try again later or submit a new complaint.)")
+            st.warning(" यह शिकायत हाल ही में दोबारा सबमिट की गई है। कृपया कुछ देर बाद कोशिश करें या एक नई शिकायत दर्ज करें। (This complaint has been submitted recently. Please try again later or submit a new complaint.)")
             st.session_state.is_processing = False
             st.session_state.last_result = None
         else:
@@ -1091,4 +1091,4 @@ if st.session_state.logged_in:
             else:
                 st.warning("Selected Complaint ID for deletion not found.")
 else:
-        st.info("No complaints found in the database to manage. Submit some complaints first!")
+    st.info("No complaints found in the database to manage. Submit some complaints first!")
