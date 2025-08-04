@@ -1097,5 +1097,4 @@ if st.session_state.logged_in:
                 st.warning("Selected Complaint ID for deletion not found.")
 else:
     st.info("No complaints found in the database to manage. Submit some complaints first!")
-```
 
