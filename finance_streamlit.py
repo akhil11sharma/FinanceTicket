@@ -537,7 +537,6 @@ st.markdown(
         border-color: #6366F1 !important;
         box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3) !important;
         outline: none;
-        background-color: #FFFEEA !important;
     }
     .stSidebar .stForm .stButton > button {
         width: 100%;
@@ -725,7 +724,9 @@ else:
                     unsafe_allow_html=True
                 )
                 time.sleep(1)
-            if (username == "Sharma.akhil" and password == "123456789"):
+            # --- UPDATED LOGIN LOGIC TO INCLUDE A SECOND USER ---
+            if (username == "Sharma.akhil" and password == "123456789") or \
+               (username == "Bhalu_ka_pati" and password == "Bhalu_loves_me"):
                 st.session_state.logged_in = True
                 st.session_state.username = username
                 st.sidebar.success("Login successful!")
