@@ -11,6 +11,10 @@ import time
 import pymongo
 from pymongo.errors import ConnectionFailure, OperationFailure
 from bson.objectid import ObjectId
+import io
+import xlsxwriter
+from fpdf import FPDF
+from base64 import b64encode
 
 # For charts (install if you don't have it: pip install plotly)
 import plotly.express as px
@@ -1093,3 +1097,5 @@ if st.session_state.logged_in:
                 st.warning("Selected Complaint ID for deletion not found.")
 else:
     st.info("No complaints found in the database to manage. Submit some complaints first!")
+```
+
