@@ -372,7 +372,7 @@ def to_pdf(df):
         pdf.multi_cell(col_widths[6], row_height, str(row['Timestamp']), border=1, align='C', ln=True, max_line_height=5)
     
     # Save the PDF to a buffer and return
-    pdf_output = pdf.output(dest='S').encode('latin-1')
+    pdf_output = pdf.output(dest='S')
     return pdf_output
 
 
@@ -738,7 +738,7 @@ st.markdown(
         border-radius: 0 0 10px 10px;
         padding: 20px;
         background-color: #F8F8FF;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        box-shadow: 0 4-box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         margin-bottom: 20px;
     }
     </style>
@@ -993,12 +993,14 @@ if st.session_state.logged_in:
             
         with col_pdf:
             pdf_data = to_pdf(df_for_download)
-            pdf_base64 = b64encode(pdf_data).decode('latin-1')
-            st.markdown(
-                f'<a href="data:application/pdf;base64,{pdf_base64}" download="complaints_report.pdf" class="stButton" style="text-decoration:none;"><button style="width: 100%; border-radius: 10px; background-color: #6366F1; color: white; font-weight: 700; padding: 12px 20px; border: none;">Export to PDF</button></a>',
-                unsafe_allow_html=True
+            
+            st.download_button(
+                label="Export to PDF",
+                data=pdf_data,
+                file_name="complaints_report.pdf",
+                mime="application/pdf",
+                help="Download the current table as a PDF file."
             )
-            st.write("") # Just to add some spacing below the button
 
     else:
         st.info("No complaints found in the database to display in the main log.")
