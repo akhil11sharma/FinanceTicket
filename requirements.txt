@@ -9,3 +9,5 @@ pymongo
 plotly
 gspread
 oauth2client
+xlsxwriter
+fpdf2
