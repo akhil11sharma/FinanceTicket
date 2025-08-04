@@ -105,7 +105,7 @@ def update_checked_twice_status(complaint_id, status):
         # Update department-specific collection
         if dept_collection_name:
             dept_collection = db[dept_collection_name]
-            result_dept = dept_collection.update_one(
+            dept_collection.update_one(
                 {"_id": ObjectId(complaint_id)},
                 {"$set": {"checked_twice": status}}
             )
@@ -326,49 +326,51 @@ def classify_complaint(text):
 def to_pdf(df):
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("Arial", size=12)
+    pdf.set_font("Arial", size=10) # Reduced font size for better fit
     # Adding a title
     pdf.cell(200, 10, txt="Customer Complaints Report", ln=True, align='C')
     pdf.cell(200, 10, txt="---", ln=True, align='C')
 
-    # Convert DataFrame to a list of lists (including headers) for the table
+    # Convert DataFrame and rename columns for a cleaner output
     df_for_pdf = df.rename(columns={'_id': 'ID', 'complaint': 'Complaint', 'sentiment': 'Sentiment',
                                      'score': 'Score', 'predicted_department': 'Department',
                                      'checked_twice': 'Status', 'timestamp': 'Timestamp'})
-    data = [df_for_pdf.columns.to_list()] + df_for_pdf.values.tolist()
+    
+    # Define headers and widths explicitly to ensure a match
+    headers = ['ID', 'Complaint', 'Sentiment', 'Score', 'Department', 'Status', 'Timestamp']
+    col_widths = [15, 65, 20, 15, 25, 20, 30] # Adjusted widths for better fit
+    
+    # Print headers
+    pdf.set_font(style='B') # Bold
+    for i, header in enumerate(headers):
+        pdf.cell(col_widths[i], 8, header, border=1, align='C')
+    pdf.ln()
 
-    # Create table
-    col_widths = [20, 80, 20, 15, 25, 20] # Define column widths to fit A4
-    for row in data:
-        # Manually wrap long complaint text
-        complaint_text = row[1]
-        lines = pdf.multi_cell(col_widths[1], 10, str(complaint_text), align='L', border=1, ln=True, split_only=True)
+    # Print data rows
+    pdf.set_font(style='') # Normal
+    for index, row in df_for_pdf.iterrows():
+        # Get the height of the complaint text cell
+        complaint_lines = pdf.multi_cell(col_widths[1], 5, str(row['Complaint']), split_only=True)
+        row_height = max(len(complaint_lines) * 5, 8) # Calculate row height based on complaint text
         
-        if len(lines) > 1:
-            # Handle wrapped lines
-            first_line_text = lines[0]
-            for i, line in enumerate(lines):
-                # Print other columns only for the first line
-                if i == 0:
-                    pdf.cell(col_widths[0], 10, str(row[0]), border=1) # ID
-                    pdf.cell(col_widths[1], 10, first_line_text, border=1) # Complaint (first line)
-                    pdf.cell(col_widths[2], 10, str(row[2]), border=1) # Sentiment
-                    pdf.cell(col_widths[3], 10, str(row[3]), border=1) # Score
-                    pdf.cell(col_widths[4], 10, str(row[4]), border=1) # Department
-                    pdf.cell(col_widths[5], 10, str(row[5]), border=1, ln=True) # Status
-                else:
-                    pdf.cell(col_widths[0], 10, "", border=1) # Empty ID cell
-                    pdf.cell(col_widths[1], 10, line, border=1) # Subsequent complaint lines
-                    pdf.cell(col_widths[2], 10, "", border=1) # Empty cells
-                    pdf.cell(col_widths[3], 10, "", border=1)
-                    pdf.cell(col_widths[4], 10, "", border=1)
-                    pdf.cell(col_widths[5], 10, "", border=1, ln=True)
-        else:
-            # Single line, print normally
-            for i, item in enumerate(row):
-                pdf.cell(col_widths[i], 10, str(item), border=1)
-            pdf.ln()
-
+        start_y = pdf.get_y()
+        
+        # Draw cells for the whole row based on max height
+        # Using multi_cell for all, but only the complaint one might wrap
+        pdf.multi_cell(col_widths[0], row_height, str(row['ID']), border=1, align='L', ln=3, max_line_height=5)
+        pdf.set_xy(pdf.get_x() + col_widths[0], start_y)
+        pdf.multi_cell(col_widths[1], row_height, str(row['Complaint']), border=1, align='L', ln=3, max_line_height=5)
+        pdf.set_xy(pdf.get_x() + col_widths[0] + col_widths[1], start_y)
+        pdf.multi_cell(col_widths[2], row_height, str(row['Sentiment']), border=1, align='C', ln=3, max_line_height=5)
+        pdf.set_xy(pdf.get_x() + col_widths[0] + col_widths[1] + col_widths[2], start_y)
+        pdf.multi_cell(col_widths[3], row_height, str(row['Score']), border=1, align='C', ln=3, max_line_height=5)
+        pdf.set_xy(pdf.get_x() + col_widths[0] + col_widths[1] + col_widths[2] + col_widths[3], start_y)
+        pdf.multi_cell(col_widths[4], row_height, str(row['Department']), border=1, align='L', ln=3, max_line_height=5)
+        pdf.set_xy(pdf.get_x() + col_widths[0] + col_widths[1] + col_widths[2] + col_widths[3] + col_widths[4], start_y)
+        pdf.multi_cell(col_widths[5], row_height, str(row['Status']), border=1, align='L', ln=3, max_line_height=5)
+        pdf.set_xy(pdf.get_x() + col_widths[0] + col_widths[1] + col_widths[2] + col_widths[3] + col_widths[4] + col_widths[5], start_y)
+        pdf.multi_cell(col_widths[6], row_height, str(row['Timestamp']), border=1, align='C', ln=True, max_line_height=5)
+    
     # Save the PDF to a buffer and return
     pdf_output = pdf.output(dest='S').encode('latin-1')
     return pdf_output
