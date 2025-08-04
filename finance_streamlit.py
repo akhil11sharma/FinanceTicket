@@ -13,8 +13,6 @@ from pymongo.errors import ConnectionFailure, OperationFailure
 from bson.objectid import ObjectId
 import io
 import xlsxwriter
-from fpdf import FPDF
-from base64 import b64encode
 
 # For charts (install if you don't have it: pip install plotly)
 import plotly.express as px
@@ -321,60 +319,6 @@ def classify_complaint(text):
         "Checked Twice": "Pending Review",
         "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
-
-# --- PDF Export Function ---
-def to_pdf(df):
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=10) # Reduced font size for better fit
-    # Adding a title
-    pdf.cell(200, 10, txt="Customer Complaints Report", ln=True, align='C')
-    pdf.cell(200, 10, txt="---", ln=True, align='C')
-
-    # Convert DataFrame and rename columns for a cleaner output
-    df_for_pdf = df.rename(columns={'_id': 'ID', 'complaint': 'Complaint', 'sentiment': 'Sentiment',
-                                     'score': 'Score', 'predicted_department': 'Department',
-                                     'checked_twice': 'Status', 'timestamp': 'Timestamp'})
-    
-    # Define headers and widths explicitly to ensure a match
-    headers = ['ID', 'Complaint', 'Sentiment', 'Score', 'Department', 'Status', 'Timestamp']
-    col_widths = [15, 65, 20, 15, 25, 20, 30] # Adjusted widths for better fit
-    
-    # Print headers
-    pdf.set_font(style='B') # Bold
-    for i, header in enumerate(headers):
-        pdf.cell(col_widths[i], 8, header, border=1, align='C')
-    pdf.ln()
-
-    # Print data rows
-    pdf.set_font(style='') # Normal
-    for index, row in df_for_pdf.iterrows():
-        # Get the height of the complaint text cell
-        complaint_lines = pdf.multi_cell(col_widths[1], 5, str(row['Complaint']), split_only=True)
-        row_height = max(len(complaint_lines) * 5, 8) # Calculate row height based on complaint text
-        
-        start_y = pdf.get_y()
-        
-        # Draw cells for the whole row based on max height
-        # Using multi_cell for all, but only the complaint one might wrap
-        pdf.multi_cell(col_widths[0], row_height, str(row['ID']), border=1, align='L', ln=3, max_line_height=5)
-        pdf.set_xy(pdf.get_x() + col_widths[0], start_y)
-        pdf.multi_cell(col_widths[1], row_height, str(row['Complaint']), border=1, align='L', ln=3, max_line_height=5)
-        pdf.set_xy(pdf.get_x() + col_widths[0] + col_widths[1], start_y)
-        pdf.multi_cell(col_widths[2], row_height, str(row['Sentiment']), border=1, align='C', ln=3, max_line_height=5)
-        pdf.set_xy(pdf.get_x() + col_widths[0] + col_widths[1] + col_widths[2], start_y)
-        pdf.multi_cell(col_widths[3], row_height, str(row['Score']), border=1, align='C', ln=3, max_line_height=5)
-        pdf.set_xy(pdf.get_x() + col_widths[0] + col_widths[1] + col_widths[2] + col_widths[3], start_y)
-        pdf.multi_cell(col_widths[4], row_height, str(row['Department']), border=1, align='L', ln=3, max_line_height=5)
-        pdf.set_xy(pdf.get_x() + col_widths[0] + col_widths[1] + col_widths[2] + col_widths[3] + col_widths[4], start_y)
-        pdf.multi_cell(col_widths[5], row_height, str(row['Status']), border=1, align='L', ln=3, max_line_height=5)
-        pdf.set_xy(pdf.get_x() + col_widths[0] + col_widths[1] + col_widths[2] + col_widths[3] + col_widths[4] + col_widths[5], start_y)
-        pdf.multi_cell(col_widths[6], row_height, str(row['Timestamp']), border=1, align='C', ln=True, max_line_height=5)
-    
-    # Save the PDF to a buffer and return
-    pdf_output = pdf.output(dest='S')
-    return pdf_output
-
 
 # --- Excel Export Function ---
 def to_excel(df):
@@ -738,7 +682,7 @@ st.markdown(
         border-radius: 0 0 10px 10px;
         padding: 20px;
         background-color: #F8F8FF;
-        box-shadow: 0 4-box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         margin-bottom: 20px;
     }
     </style>
@@ -992,15 +936,7 @@ if st.session_state.logged_in:
             )
             
         with col_pdf:
-            pdf_data = to_pdf(df_for_download)
-            
-            st.download_button(
-                label="Export to PDF",
-                data=pdf_data,
-                file_name="complaints_report.pdf",
-                mime="application/pdf",
-                help="Download the current table as a PDF file."
-            )
+            st.info("PDF functionality has been removed.")
 
     else:
         st.info("No complaints found in the database to display in the main log.")
@@ -1119,21 +1055,19 @@ if st.session_state.logged_in:
         
         # Create a more informative list for the selectbox
         if not filtered_df_for_tab.empty:
-            display_options = [f"ID: {row['ID']} / {row['Complaint'][:70]}..." for index, row in display_df_tab.iterrows()]
-            id_to_display_map = {f"ID: {row['ID']} / {row['Complaint'][:70]}...": row['ID'] for index, row in display_df_tab.iterrows()}
+            available_ids_for_update = filtered_df_for_tab['_id'].tolist()
         else:
-            display_options = []
-            id_to_display_map = {}
+            available_ids_for_update = []
         
-        selected_display_string = st.selectbox(
-            "Select Complaint to Update",
-            [""] + display_options,
-            key="select_complaint_to_update_tab",
-            help="Choose a complaint from the table above by its ID and a snippet of its text."
+        selected_complaint_id_str_update = st.selectbox(
+            "Select Complaint ID to Update (from table above)",
+            [""] + available_ids_for_update,
+            key="select_complaint_id_to_update_tab",
+            help="Choose a complaint ID from the table above to view its details and update its status."
         )
 
-        if selected_display_string and selected_display_string != "":
-            selected_complaint_id_update = id_to_display_map[selected_display_string]
+        if selected_complaint_id_str_update and selected_complaint_id_str_update != "":
+            selected_complaint_id_update = selected_complaint_id_str_update
             current_complaint_data_row_update = all_complaints_df[all_complaints_df['_id'] == selected_complaint_id_update]
             if not current_complaint_data_row_update.empty:
                 current_complaint_data_update = current_complaint_data_row_update.iloc[0]
@@ -1180,23 +1114,16 @@ if st.session_state.logged_in:
 
         st.markdown("---")
         st.markdown("<h3>Delete Complaint</h3>", unsafe_allow_html=True)
-
-        if not filtered_df_for_tab.empty:
-            display_options_delete = [f"ID: {row['ID']} / {row['Complaint'][:70]}..." for index, row in display_df_tab.iterrows()]
-            id_to_display_map_delete = {f"ID: {row['ID']} / {row['Complaint'][:70]}...": row['ID'] for index, row in display_df_tab.iterrows()}
-        else:
-            display_options_delete = []
-            id_to_display_map_delete = {}
-            
-        selected_display_string_delete = st.selectbox(
+        available_ids_for_delete = filtered_df_for_tab['_id'].tolist()
+        selected_complaint_id_str_delete = st.selectbox(
             "Select Complaint to Delete",
-            [""] + display_options_delete,
-            key="select_complaint_to_delete_tab",
+            [""] + available_ids_for_delete,
+            key="select_complaint_id_to_delete_tab",
             help="**WARNING:** Deleting a complaint is irreversible. Select carefully."
         )
 
-        if selected_display_string_delete and selected_display_string_delete != "":
-            selected_complaint_id_delete = id_to_display_map_delete[selected_display_string_delete]
+        if selected_complaint_id_str_delete and selected_complaint_id_str_delete != "":
+            selected_complaint_id_delete = selected_complaint_id_str_delete
             complaint_to_delete_row = all_complaints_df[all_complaints_df['_id'] == selected_complaint_id_delete]
             
             if not complaint_to_delete_row.empty:
