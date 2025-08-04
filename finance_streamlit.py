@@ -322,6 +322,72 @@ def classify_complaint(text):
         "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
 
+# --- PDF Export Function ---
+def to_pdf(df):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    # Adding a title
+    pdf.cell(200, 10, txt="Customer Complaints Report", ln=True, align='C')
+    pdf.cell(200, 10, txt="---", ln=True, align='C')
+
+    # Convert DataFrame to a list of lists (including headers) for the table
+    df_for_pdf = df.rename(columns={'_id': 'ID', 'complaint': 'Complaint', 'sentiment': 'Sentiment',
+                                     'score': 'Score', 'predicted_department': 'Department',
+                                     'checked_twice': 'Status', 'timestamp': 'Timestamp'})
+    data = [df_for_pdf.columns.to_list()] + df_for_pdf.values.tolist()
+
+    # Create table
+    col_widths = [20, 80, 20, 15, 25, 20] # Define column widths to fit A4
+    for row in data:
+        # Manually wrap long complaint text
+        complaint_text = row[1]
+        lines = pdf.multi_cell(col_widths[1], 10, str(complaint_text), align='L', border=1, ln=True, split_only=True)
+        
+        if len(lines) > 1:
+            # Handle wrapped lines
+            first_line_text = lines[0]
+            for i, line in enumerate(lines):
+                # Print other columns only for the first line
+                if i == 0:
+                    pdf.cell(col_widths[0], 10, str(row[0]), border=1) # ID
+                    pdf.cell(col_widths[1], 10, first_line_text, border=1) # Complaint (first line)
+                    pdf.cell(col_widths[2], 10, str(row[2]), border=1) # Sentiment
+                    pdf.cell(col_widths[3], 10, str(row[3]), border=1) # Score
+                    pdf.cell(col_widths[4], 10, str(row[4]), border=1) # Department
+                    pdf.cell(col_widths[5], 10, str(row[5]), border=1, ln=True) # Status
+                else:
+                    pdf.cell(col_widths[0], 10, "", border=1) # Empty ID cell
+                    pdf.cell(col_widths[1], 10, line, border=1) # Subsequent complaint lines
+                    pdf.cell(col_widths[2], 10, "", border=1) # Empty cells
+                    pdf.cell(col_widths[3], 10, "", border=1)
+                    pdf.cell(col_widths[4], 10, "", border=1)
+                    pdf.cell(col_widths[5], 10, "", border=1, ln=True)
+        else:
+            # Single line, print normally
+            for i, item in enumerate(row):
+                pdf.cell(col_widths[i], 10, str(item), border=1)
+            pdf.ln()
+
+    # Save the PDF to a buffer and return
+    pdf_output = pdf.output(dest='S').encode('latin-1')
+    return pdf_output
+
+
+# --- Excel Export Function ---
+def to_excel(df):
+    output = io.BytesIO()
+    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+    # Rename columns for a cleaner Excel sheet
+    df_for_excel = df.rename(columns={'_id': 'ID', 'complaint': 'Complaint', 'sentiment': 'Sentiment',
+                                     'score': 'Score', 'predicted_department': 'Department',
+                                     'checked_twice': 'Status', 'timestamp': 'Timestamp'})
+    df_for_excel.to_excel(writer, index=False, sheet_name='Complaints')
+    writer.close()
+    processed_data = output.getvalue()
+    return processed_data
+
+
 # --- Streamlit UI ---
 st.markdown(
     """
@@ -882,11 +948,56 @@ if st.session_state.logged_in:
             st.rerun()
     st.markdown("<br>", unsafe_allow_html=True)
     all_complaints_df = get_all_complaints_from_db()
-    display_filtered_df_for_main_table = all_complaints_df.head(20).copy()
-    if not display_filtered_df_for_main_table.empty:
-        st.markdown("<h3>All Complaints Log (Most Recent)</h3>", unsafe_allow_html=True)
-        display_df_main = display_filtered_df_for_main_table.rename(columns={'_id': 'ID'})
+    
+    # New control for "Last 10" or "All" complaints
+    st.markdown("---")
+    filter_option = st.radio(
+        "Display Complaints",
+        ("Last 10", "All"),
+        index=0,
+        key="last_or_all_filter",
+        horizontal=True
+    )
+    
+    if filter_option == "Last 10":
+        display_df_main = all_complaints_df.head(10).copy()
+    else:
+        display_df_main = all_complaints_df.copy()
+        
+    if not display_df_main.empty:
+        st.markdown("<h3>All Complaints Log</h3>", unsafe_allow_html=True)
+        # Rename _id to ID for display, then drop it from the display
+        display_df_main = display_df_main.rename(columns={'_id': 'ID'})
         st.dataframe(display_df_main.drop(columns=['_id'], errors='ignore'), use_container_width=True, hide_index=True)
+        
+        # New Download Section
+        st.markdown("---")
+        st.markdown("<h3>Download Complaints Data</h3>", unsafe_allow_html=True)
+        
+        # Prepare data for download
+        df_for_download = display_df_main.rename(columns={'ID': '_id'})
+        
+        col_excel, col_pdf = st.columns(2)
+        
+        with col_excel:
+            excel_data = to_excel(df_for_download)
+            st.download_button(
+                label="Export to Excel",
+                data=excel_data,
+                file_name="complaints_data.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                help="Download the current table as an Excel file."
+            )
+            
+        with col_pdf:
+            pdf_data = to_pdf(df_for_download)
+            pdf_base64 = b64encode(pdf_data).decode('latin-1')
+            st.markdown(
+                f'<a href="data:application/pdf;base64,{pdf_base64}" download="complaints_report.pdf" class="stButton" style="text-decoration:none;"><button style="width: 100%; border-radius: 10px; background-color: #6366F1; color: white; font-weight: 700; padding: 12px 20px; border: none;">Export to PDF</button></a>',
+                unsafe_allow_html=True
+            )
+            st.write("") # Just to add some spacing below the button
+
     else:
         st.info("No complaints found in the database to display in the main log.")
     st.markdown("---")
@@ -1001,15 +1112,24 @@ if st.session_state.logged_in:
         st.dataframe(display_df_tab.drop(columns=['_id'], errors='ignore'), use_container_width=True, hide_index=True)
         st.markdown("---")
         st.markdown("<h3>Update Complaint Status</h3>", unsafe_allow_html=True)
-        available_ids_for_update = filtered_df_for_tab['_id'].tolist()
-        selected_complaint_id_str_update = st.selectbox(
-            "Select Complaint ID to Update (from table above)",
-            [""] + available_ids_for_update,
-            key="select_complaint_id_to_update_tab",
-            help="Choose a complaint ID from the table above to view its details and update its status."
+        
+        # Create a more informative list for the selectbox
+        if not filtered_df_for_tab.empty:
+            display_options = [f"ID: {row['ID']} / {row['Complaint'][:70]}..." for index, row in display_df_tab.iterrows()]
+            id_to_display_map = {f"ID: {row['ID']} / {row['Complaint'][:70]}...": row['ID'] for index, row in display_df_tab.iterrows()}
+        else:
+            display_options = []
+            id_to_display_map = {}
+        
+        selected_display_string = st.selectbox(
+            "Select Complaint to Update",
+            [""] + display_options,
+            key="select_complaint_to_update_tab",
+            help="Choose a complaint from the table above by its ID and a snippet of its text."
         )
-        if selected_complaint_id_str_update and selected_complaint_id_str_update != "":
-            selected_complaint_id_update = selected_complaint_id_str_update
+
+        if selected_display_string and selected_display_string != "":
+            selected_complaint_id_update = id_to_display_map[selected_display_string]
             current_complaint_data_row_update = all_complaints_df[all_complaints_df['_id'] == selected_complaint_id_update]
             if not current_complaint_data_row_update.empty:
                 current_complaint_data_update = current_complaint_data_row_update.iloc[0]
@@ -1053,21 +1173,32 @@ if st.session_state.logged_in:
                     st.rerun()
             else:
                 st.warning("Selected Complaint ID not found.")
+
         st.markdown("---")
         st.markdown("<h3>Delete Complaint</h3>", unsafe_allow_html=True)
-        available_ids_for_delete = filtered_df_for_tab['_id'].tolist()
-        selected_complaint_id_str_delete = st.selectbox(
-            "Select Complaint ID to Delete",
-            [""] + available_ids_for_delete,
-            key="select_complaint_id_to_delete_tab",
+
+        if not filtered_df_for_tab.empty:
+            display_options_delete = [f"ID: {row['ID']} / {row['Complaint'][:70]}..." for index, row in display_df_tab.iterrows()]
+            id_to_display_map_delete = {f"ID: {row['ID']} / {row['Complaint'][:70]}...": row['ID'] for index, row in display_df_tab.iterrows()}
+        else:
+            display_options_delete = []
+            id_to_display_map_delete = {}
+            
+        selected_display_string_delete = st.selectbox(
+            "Select Complaint to Delete",
+            [""] + display_options_delete,
+            key="select_complaint_to_delete_tab",
             help="**WARNING:** Deleting a complaint is irreversible. Select carefully."
         )
-        if selected_complaint_id_str_delete and selected_complaint_id_str_delete != "":
-            selected_complaint_id_delete = selected_complaint_id_str_delete
+
+        if selected_display_string_delete and selected_display_string_delete != "":
+            selected_complaint_id_delete = id_to_display_map_delete[selected_display_string_delete]
             complaint_to_delete_row = all_complaints_df[all_complaints_df['_id'] == selected_complaint_id_delete]
+            
             if not complaint_to_delete_row.empty:
                 st.error(f"You are about to DELETE Complaint ID {selected_complaint_id_delete}: \"{complaint_to_delete_row.iloc[0]['complaint'][:50]}...\"")
                 confirm_delete = st.checkbox(f"I understand this action cannot be undone and wish to delete Complaint ID {selected_complaint_id_delete}.", key=f"confirm_delete_{selected_complaint_id_delete}")
+                
                 if confirm_delete:
                     if st.button(f"CONFIRM DELETE Complaint ID {selected_complaint_id_delete}", key=f"delete_button_final_{selected_complaint_id_delete}"):
                         with st.empty():
@@ -1097,4 +1228,3 @@ if st.session_state.logged_in:
                 st.warning("Selected Complaint ID for deletion not found.")
 else:
     st.info("No complaints found in the database to manage. Submit some complaints first!")
-
