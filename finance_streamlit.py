@@ -1,4 +1,3 @@
-# finance_streamlit.py
 import streamlit as st
 import pandas as pd
 from textblob import TextBlob
@@ -14,6 +13,8 @@ from pymongo.errors import ConnectionFailure, OperationFailure
 from bson.objectid import ObjectId
 import io
 import xlsxwriter
+
+# For charts (install if you don't have it: pip install plotly)
 import plotly.express as px
 
 # --- Streamlit Page Configuration (Must be the first Streamlit command) ---
@@ -198,7 +199,7 @@ def download_nltk_data():
     try:
         nltk.data.find('taggers/averaged_perceptron_tagger')
     except LookupError:
-        nltk.download('averaged_perceptron_tagger', quiet=True)  # fixed typo
+        nltk.download('averaged_perceptron_tagger', quiet=True)
     try:
         nltk.data.find('sentiment/vader_lexicon')
     except LookupError:
@@ -338,20 +339,18 @@ st.markdown(
     """
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-    html, body, [class*="st-"] {
-        font-family: 'Inter', sans-serif;
-    }
+    html, body, [class*="st-"] { font-family: 'Inter', sans-serif; }
     .main-header {
-        font-size: 2.5em;
+        font-size: 3.5em; 
         color: #4B0082;
-        text-align: left;
-        margin-bottom: 0;
+        text-align: center; 
+        margin-bottom: 1.5em;
         font-weight: 700;
         letter-spacing: -1px;
         text-shadow: 2px 2px 5px rgba(0,0,0,0.1);
         animation: header-fade-in 1.5s ease-out;
     }
-    .logo-container { display: flex; align-items: center; gap: 20px; }
+    .logo-container { display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
     @keyframes header-fade-in { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
     .department-container { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 20px; }
     .department-box { background-color: #EEF2FF; color: #4B0082; padding: 12px 20px; border-radius: 10px; font-weight: 600; text-align: center; flex: 1 1 auto; min-width: 180px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: all 0.3s ease-in-out; border: 1px solid #C7D2FE; opacity: 0; transform: translateY(20px); animation: fadeInSlideUp 0.6s forwards ease-out; }
@@ -377,7 +376,7 @@ st.markdown(
     .loader { --s: 20px; --_d: calc(0.353*var(--s)); width: calc(var(--s) + var(--_d)); aspect-ratio: 1; display: grid; margin: 0 auto; }
     .loader:before, .loader:after { content: ""; grid-area: 1/1; clip-path: polygon(var(--_d) 0,100% 0,100% calc(100% - var(--_d)),calc(100% - var(--_d)) 100%,0 100%,0 var(--_d)); background: conic-gradient(from -90deg at calc(100% - var(--_d)) var(--_d), #fff 135deg,#666 0 270deg,#aaa 0); animation: l6 2s infinite; }
     .loader:after { animation-delay:-1s; }
-    @keyframes l6{ 0%  {transform:translate(0,0)} 25% {transform:translate(30px,0)} 50% {transform:translate(30px,30px)} 75% {transform:translate(0,30px)} 100%{transform:translate(0,0)} }
+    @keyframes l6{ 0%  {transform:translate(0,0)} 25% {transform:translate(30px,0)} 50% {transform:translate(30px,30px)} 75% {transform:translate(0,30px)} 100%{transform:translate(0,0)} }
     .loader-text { font-size: 1.1em; font-weight: 600; color: #4B0082; text-align: center; margin-top: 10px; }
     .stSidebar .stForm { background-color: #EEF2FF; padding: 25px; border-radius: 15px; box-shadow: 0 6px 15px rgba(0,0,0,0.15); margin-top: 25px; transition: all 0.3s ease-in-out; border: 1px solid #C7D2FE; }
     .stSidebar .stForm:hover { box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
@@ -412,23 +411,15 @@ st.markdown(
 )
 
 # --- Session State Initialization for Login and Tab ---
-if 'logged_in' not in st.session_state:
-    st.session_state.logged_in = False
-if 'username' not in st.session_state:
-    st.session_state.username = ''
-if 'last_result' not in st.session_state:
-    st.session_state.last_result = None
-if 'complaint_input_key' not in st.session_state:
-    st.session_state.complaint_input_key = 0
-if 'is_processing' not in st.session_state:
-    st.session_state.is_processing = False
-if 'current_complaint_text' not in st.session_state:
-    st.session_state.current_complaint_text = ""
-if 'last_logged_complaint_text' not in st.session_state:
-    st.session_state.last_logged_complaint_text = ""
-if 'last_logged_complaint_timestamp' not in st.session_state:
-    st.session_state.last_logged_complaint_timestamp = None
-if 'active_tab_index' not in st.session_state:
+if 'logged_in' not in st.session_state: st.session_state.logged_in = False
+if 'username' not in st.session_state: st.session_state.username = ''
+if 'last_result' not in st.session_state: st.session_state.last_result = None
+if 'complaint_input_key' not in st.session_state: st.session_state.complaint_input_key = 0
+if 'is_processing' not in st.session_state: st.session_state.is_processing = False
+if 'current_complaint_text' not in st.session_state: st.session_state.current_complaint_text = ""
+if 'last_logged_complaint_text' not in st.session_state: st.session_state.last_logged_complaint_text = ""
+if 'last_logged_complaint_timestamp' not in st.session_state: st.session_state.last_logged_complaint_timestamp = None
+if 'active_tab_index' not in st.session_state or not isinstance(st.session_state.active_tab_index, int):
     st.session_state.active_tab_index = 0
 
 # --- Login/Logout Functionality in Sidebar ---
@@ -449,19 +440,9 @@ else:
         login_button = st.form_submit_button("Login")
         if login_button:
             with st.sidebar.empty():
-                st.markdown(
-                    """
-                    <div class="loader-container">
-                        <div class="loader"></div>
-                        <div class="loader-text">Logging in...</div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-                time.sleep(4)  # Simulate a 4-second loading time
-            # --- UPDATED LOGIN LOGIC TO INCLUDE A SECOND USER ---
-            if (username == "Sharma.akhil" and password == "123456789") or \
-               (username == "Bhalu_ka_pati" and password == "Bhalu_loves_me"):
+                st.markdown("""<div class="loader-container"><div class="loader"></div><div class="loader-text">Logging in...</div></div>""", unsafe_allow_html=True)
+                time.sleep(4)
+            if (username == "Sharma.akhil" and password == "123456789") or (username == "Bhalu_ka_pati" and password == "Bhalu_loves_me"):
                 st.session_state.logged_in = True
                 st.session_state.username = username
                 st.sidebar.success("Login successful!")
@@ -470,15 +451,8 @@ else:
                 st.sidebar.error("Invalid username or password.")
 
 # --- Main App Content ---
-col_logo, col_header = st.columns([0.3, 0.7])
-with col_logo:
-    # If the image file is not present, Streamlit will show an error; ensure this file exists or replace path
-    try:
-        st.image("Gemini_Generated_Image_sc8m3ysc8m3ysc8m.png", width=100)
-    except Exception:
-        pass
-with col_header:
-    st.markdown('<p class="main-header">Complaint Classifier</p>', unsafe_allow_html=True)
+st.image("Gemini_Generated_Image_sc8m3ysc8m3ysc8m.png", width=250)
+st.markdown('<p class="main-header">Customer Complaint Classification</p>', unsafe_allow_html=True)
 
 st.markdown("---")
 st.markdown("<h3>Explore Our Complaint Categories</h3>", unsafe_allow_html=True)
@@ -518,16 +492,8 @@ if submit_button:
 
 # --- Conditional Processing Block (runs only when is_processing is True) ---
 if st.session_state.is_processing:
-    loader_placeholder.markdown(
-        """
-        <div class="loader-container">
-            <div class="loader"></div>
-            <div class="loader-text">Analyzing complaint and routing...</div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-    time.sleep(4) # Simulate a 4-second loading time
+    loader_placeholder.markdown("""<div class="loader-container"><div class="loader"></div><div class="loader-text">Analyzing complaint and routing...</div></div>""", unsafe_allow_html=True)
+    time.sleep(4) 
     result = classify_complaint(st.session_state.current_complaint_text)
     if log_to_database(result):
         st.session_state.last_result = result
@@ -603,39 +569,17 @@ if st.session_state.logged_in:
     with refresh_button_placeholder.container():
         if st.button("Refresh All Portal Data", key="support_refresh_all_button", help="Reloads all data in the portal from the database."):
             with st.empty():
-                st.markdown(
-                    """
-                    <div class="loader-container">
-                        <div class="loader"></div>
-                        <div class="loader-text">Refreshing data...</div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-                time.sleep(4) # Simulate a 4-second loading time
+                st.markdown("""<div class="loader-container"><div class="loader"></div><div class="loader-text">Refreshing data...</div></div>""", unsafe_allow_html=True)
+                time.sleep(4) 
             st.cache_data.clear()
             st.rerun()
     st.markdown("<br>", unsafe_allow_html=True)
     all_complaints_df = get_all_complaints_from_db()
 
-    # The fix is here: Ensure active_tab_index is a valid integer before using.
-    if 'active_tab_index' not in st.session_state or not isinstance(st.session_state.active_tab_index, int):
-        st.session_state.active_tab_index = 0
-
-    # Use a radio control to emulate tabs but keep programmatic control via session_state
-    TAB_LABELS = ["📊 Dashboard & Visualizations", "📝 Manage & Update Complaints"]
-    selected_tab_label = st.radio(
-        label="",
-        options=TAB_LABELS,
-        index=st.session_state.active_tab_index,
-        horizontal=True,
-        key="main_tabs_radio"
-    )
-    # Persist selection
-    st.session_state.active_tab_index = TAB_LABELS.index(selected_tab_label)
-
-    # --- Dashboard & Visualizations (previously tab1) ---
-    if selected_tab_label == TAB_LABELS[0]:
+    # The original st.tabs component is used here.
+    tab1, tab2 = st.tabs(["📊 Dashboard & Visualizations", "📝 Manage & Update Complaints"], index=st.session_state.active_tab_index)
+    
+    with tab1:
         if not all_complaints_df.empty:
             st.markdown("<h3>Complaint Analytics</h3>", unsafe_allow_html=True)
             total_complaints = len(all_complaints_df)
@@ -681,9 +625,8 @@ if st.session_state.logged_in:
             st.plotly_chart(fig_time, use_container_width=True)
         else:
             st.info("No data available for analytics. Submit some complaints first!")
-
-    # --- Manage & Update Complaints (previously tab2) ---
-    else:
+    
+    with tab2:
         st.markdown("<h3>Search & Filter Complaints</h3>", unsafe_allow_html=True)
         with st.expander("Filter Options", expanded=True):
             filter_col1, filter_col2, filter_col3 = st.columns(3)
@@ -782,16 +725,8 @@ if st.session_state.logged_in:
                 )
                 if st.button(f"Update Status for ID {selected_complaint_id_update}", key=f"update_button_tab_{selected_complaint_id_update}"):
                     with st.empty():
-                        st.markdown(
-                            """
-                            <div class="loader-container">
-                                <div class="loader"></div>
-                                <div class="loader-text">Updating status...</div>
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
-                        time.sleep(4) # Simulate a 4-second loading time
+                        st.markdown("""<div class="loader-container"><div class="loader"></div><div class="loader-text">Updating status...</div></div>""", unsafe_allow_html=True)
+                        time.sleep(4) 
                     if update_checked_twice_status(selected_complaint_id_update, new_status):
                         st.session_state.active_tab_index = 1
                         st.success(f"Status for Complaint ID {selected_complaint_id_update} updated to '{new_status}'.")
@@ -825,16 +760,8 @@ if st.session_state.logged_in:
                 if confirm_delete:
                     if st.button(f"CONFIRM DELETE Complaint ID {selected_complaint_id_delete}", key=f"delete_button_final_{selected_complaint_id_delete}"):
                         with st.empty():
-                            st.markdown(
-                                """
-                                <div class="loader-container">
-                                    <div class="loader"></div>
-                                    <div class="loader-text">Deleting complaint...</div>
-                                </div>
-                                """,
-                                unsafe_allow_html=True
-                            )
-                            time.sleep(4) # Simulate a 4-second loading time
+                            st.markdown("""<div class="loader-container"><div class="loader"></div><div class="loader-text">Deleting complaint...</div></div>""", unsafe_allow_html=True)
+                            time.sleep(4) 
                         if delete_complaint(selected_complaint_id_delete):
                             st.session_state.active_tab_index = 1
                             st.success("Complaint deleted successfully!")
