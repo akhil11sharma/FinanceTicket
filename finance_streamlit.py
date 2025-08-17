@@ -1,3 +1,4 @@
+# finance_streamlit.py
 import streamlit as st
 import pandas as pd
 from textblob import TextBlob
@@ -13,8 +14,6 @@ from pymongo.errors import ConnectionFailure, OperationFailure
 from bson.objectid import ObjectId
 import io
 import xlsxwriter
-
-# For charts (install if you don't have it: pip install plotly)
 import plotly.express as px
 
 # --- Streamlit Page Configuration (Must be the first Streamlit command) ---
@@ -199,7 +198,7 @@ def download_nltk_data():
     try:
         nltk.data.find('taggers/averaged_perceptron_tagger')
     except LookupError:
-        nltk.download('averaged_perceptron_percept_tagger', quiet=True)
+        nltk.download('averaged_perceptron_tagger', quiet=True)  # fixed typo
     try:
         nltk.data.find('sentiment/vader_lexicon')
     except LookupError:
@@ -334,7 +333,7 @@ def to_excel(df):
     return processed_data
 
 
-# --- Streamlit UI ---
+# --- Streamlit UI Styling (kept the user's CSS) ---
 st.markdown(
     """
     <style>
@@ -343,358 +342,70 @@ st.markdown(
         font-family: 'Inter', sans-serif;
     }
     .main-header {
-        font-size: 2.5em; /* Reduced font size for better alignment */
+        font-size: 2.5em;
         color: #4B0082;
-        text-align: left; /* Aligned left to match the logo */
+        text-align: left;
         margin-bottom: 0;
         font-weight: 700;
         letter-spacing: -1px;
         text-shadow: 2px 2px 5px rgba(0,0,0,0.1);
         animation: header-fade-in 1.5s ease-out;
     }
-    .logo-container {
-        display: flex;
-        align-items: center;
-        gap: 20px;
-    }
-    @keyframes header-fade-in {
-        from { opacity: 0; transform: translateY(-20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    .department-container {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        justify-content: center;
-        margin-bottom: 20px;
-    }
-    .department-box {
-        background-color: #EEF2FF;
-        color: #4B0082;
-        padding: 12px 20px;
-        border-radius: 10px;
-        font-weight: 600;
-        text-align: center;
-        flex: 1 1 auto;
-        min-width: 180px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        transition: all 0.3s ease-in-out;
-        border: 1px solid #C7D2FE;
-        opacity: 0;
-        transform: translateY(20px);
-        animation: fadeInSlideUp 0.6s forwards ease-out;
-    }
-    .department-box:nth-child(1) { animation-delay: 0.1s; }
-    .department-box:nth-child(2) { animation-delay: 0.2s; }
-    .department-box:nth-child(3) { animation-delay: 0.3s; }
-    .department-box:nth-child(4) { animation-delay: 0.4s; }
-    .department-box:nth-child(5) { animation-delay: 0.5s; }
-    .department-box:hover {
-        background-color: #E0E7FF;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-        transform: translateY(-5px);
-    }
-    .department-box.highlighted {
-        background-color: #6366F1;
-        color: white;
-        box-shadow: 0 0 15px 5px rgba(99, 102, 241, 0.7),
-                        0 0 25px 10px rgba(79, 70, 229, 0.5),
-                        0 0 35px 15px rgba(59, 130, 246, 0.3);
-        transform: scale(1.05);
-        border: 2px solid #4F46E5;
-        animation: pulse-glow 1.5s infinite alternate;
-    }
-    @keyframes pulse-glow {
-        0% { box-shadow: 0 0 5px 2px rgba(99, 102, 241, 0.4), 0 0 10px 5px rgba(79, 70, 229, 0.2); }
-        100% { box-shadow: 0 0 15px 5px rgba(99, 102, 241, 0.7), 0 0 25px 10px rgba(79, 70, 229, 0.5), 0 0 35px 15px rgba(59, 130, 246, 0.3); }
-    }
-    .stTextArea textarea {
-        background-color: #EFEFEF !important;
-        border-radius: 10px !important;
-        border: 1px solid #D1D5DB !important;
-        padding: 12px !important;
-        font-size: 1rem !important;
-        color: #333333 !important;
-        transition: all 0.2s ease-in-out;
-    }
-    .stTextArea textarea:focus {
-        border-color: #6366F1 !important;
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2) !important;
-        outline: none;
-    }
-    .stButton > button {
-        width: 100%;
-        background-color: #6366F1;
-        color: white;
-        font-weight: 700;
-        padding: 12px 20px;
-        border-radius: 10px;
-        border: none;
-        transition: all 0.3s ease-in-out;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    .stButton > button:hover {
-        background-color: #4F46E5;
-        transform: translateY(-2px);
-        box-shadow: 0 6px 8px rgba(0,0,0,0.15);
-    }
+    .logo-container { display: flex; align-items: center; gap: 20px; }
+    @keyframes header-fade-in { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+    .department-container { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 20px; }
+    .department-box { background-color: #EEF2FF; color: #4B0082; padding: 12px 20px; border-radius: 10px; font-weight: 600; text-align: center; flex: 1 1 auto; min-width: 180px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: all 0.3s ease-in-out; border: 1px solid #C7D2FE; opacity: 0; transform: translateY(20px); animation: fadeInSlideUp 0.6s forwards ease-out; }
+    .department-box:hover { background-color: #E0E7FF; box-shadow: 0 4px 10px rgba(0,0,0,0.15); transform: translateY(-5px); }
+    .department-box.highlighted { background-color: #6366F1; color: white; box-shadow: 0 0 15px 5px rgba(99, 102, 241, 0.7); transform: scale(1.05); border: 2px solid #4F46E5; animation: pulse-glow 1.5s infinite alternate; }
+    @keyframes pulse-glow { 0% { box-shadow: 0 0 5px 2px rgba(99, 102, 241, 0.4), 0 0 10px 5px rgba(79, 70, 229, 0.2); } 100% { box-shadow: 0 0 15px 5px rgba(99, 102, 241, 0.7); } }
+    .stTextArea textarea { background-color: #EFEFEF !important; border-radius: 10px !important; border: 1px solid #D1D5DB !important; padding: 12px !important; font-size: 1rem !important; color: #333333 !important; transition: all 0.2s ease-in-out; }
+    .stButton > button { width: 100%; background-color: #6366F1; color: white; font-weight: 700; padding: 12px 20px; border-radius: 10px; border: none; transition: all 0.3s ease-in-out; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .stButton > button:hover { background-color: #4F46E5; transform: translateY(-2px); box-shadow: 0 6px 8px rgba(0,0,0,0.15); }
     .stAlert { border-radius: 10px; }
-    .stDataFrame {
-        border-radius: 10px;
-        overflow: hidden;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    }
+    .stDataFrame { border-radius: 10px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
     .stDataFrame > div { border-radius: 10px; }
     .stDataFrame table { border-collapse: collapse; width: 100%; }
-    .stDataFrame th {
-        background-color: #EEF2FF;
-        color: #4B0082;
-        font-weight: 600;
-        padding: 10px;
-        text-align: left;
-        border-bottom: 2px solid #C7D2FE;
-    }
-    .stDataFrame td {
-        padding: 10px;
-        border-bottom: 1px solid #E0E7FF;
-    }
+    .stDataFrame th { background-color: #EEF2FF; color: #4B0082; font-weight: 600; padding: 10px; text-align: left; border-bottom: 2px solid #C7D2FE; }
+    .stDataFrame td { padding: 10px; border-bottom: 1px solid #E0E7FF; }
     .stDataFrame tbody tr:nth-child(even) { background-color: #F9FAFB; }
     .stDataFrame tbody tr:hover { background-color: #F3F4F6; }
-    .stMarkdown h2 {
-        color: #4B0082;
-        text-align: center;
-        margin-top: 2em;
-        margin-bottom: 1em;
-        font-weight: 600;
-        font-size: 1.8em;
-    }
-    .stMetric {
-        background-color: #F0F4F8;
-        border-radius: 10px;
-        padding: 15px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        text-align: center;
-    }
-    .stMetric label {
-        font-weight: 500;
-        color: #6B7280;
-    }
-    .stMetric .css-1q8dd3e {
-        font-size: 1.8em;
-        font-weight: 700;
-        --sentiment-positive-color: #10B981;
-        --sentiment-negative-color: #EF4444;
-        --sentiment-neutral-color: #F59E0B;
-    }
-    .stMetric .css-1q8dd3e[data-sentiment="Positive"] { color: var(--sentiment-positive-color); }
-    .stMetric .css-1q8dd3e[data-sentiment="Negative"] { color: var(--sentiment-negative-color); }
-    .stMetric .css-1q8dd3e[data-sentiment="Neutral"] { color: var(--sentiment-neutral-color); }
-    
-    /* New Loader CSS from user prompt */
-    .loader-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      margin: 20px auto;
-      min-height: 100px;
-    }
-    .loader {
-        --s: 20px;
-        --_d: calc(0.353*var(--s));
-        width: calc(var(--s) + var(--_d));
-        aspect-ratio: 1;
-        display: grid;
-        margin: 0 auto;
-    }
-    .loader:before,
-    .loader:after {
-        content: "";
-        grid-area: 1/1;
-        clip-path: polygon(var(--_d) 0,100% 0,100% calc(100% - var(--_d)),calc(100% - var(--_d)) 100%,0 100%,0 var(--_d));
-        background:
-            conic-gradient(from -90deg at calc(100% - var(--_d)) var(--_d),
-            #fff 135deg,#666 0 270deg,#aaa 0);
-        animation: l6 2s infinite;
-    }
-    .loader:after {
-        animation-delay:-1s;
-    }
-    @keyframes l6{
-        0%  {transform:translate(0,0)}
-        25% {transform:translate(30px,0)}
-        50% {transform:translate(30px,30px)}
-        75% {transform:translate(0,30px)}
-        100%{transform:translate(0,0)}
-    }
-    
-    .loader-text {
-        font-size: 1.1em;
-        font-weight: 600;
-        color: #4B0082;
-        text-align: center;
-        margin-top: 10px;
-    }
-    .stSidebar .stForm {
-        background-color: #EEF2FF;
-        padding: 25px;
-        border-radius: 15px;
-        box-shadow: 0 6px 15px rgba(0,0,0,0.15);
-        margin-top: 25px;
-        transition: all 0.3s ease-in-out;
-        border: 1px solid #C7D2FE;
-    }
+    .stMarkdown h2 { color: #4B0082; text-align: center; margin-top: 2em; margin-bottom: 1em; font-weight: 600; font-size: 1.8em; }
+    .stMetric { background-color: #F0F4F8; border-radius: 10px; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: center; }
+    .stMetric label { font-weight: 500; color: #6B7280; }
+    .stMetric .css-1q8dd3e { font-size: 1.8em; font-weight: 700; }
+    .loader-container { display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 20px auto; min-height: 100px; }
+    .loader { --s: 20px; --_d: calc(0.353*var(--s)); width: calc(var(--s) + var(--_d)); aspect-ratio: 1; display: grid; margin: 0 auto; }
+    .loader:before, .loader:after { content: ""; grid-area: 1/1; clip-path: polygon(var(--_d) 0,100% 0,100% calc(100% - var(--_d)),calc(100% - var(--_d)) 100%,0 100%,0 var(--_d)); background: conic-gradient(from -90deg at calc(100% - var(--_d)) var(--_d), #fff 135deg,#666 0 270deg,#aaa 0); animation: l6 2s infinite; }
+    .loader:after { animation-delay:-1s; }
+    @keyframes l6{ 0%  {transform:translate(0,0)} 25% {transform:translate(30px,0)} 50% {transform:translate(30px,30px)} 75% {transform:translate(0,30px)} 100%{transform:translate(0,0)} }
+    .loader-text { font-size: 1.1em; font-weight: 600; color: #4B0082; text-align: center; margin-top: 10px; }
+    .stSidebar .stForm { background-color: #EEF2FF; padding: 25px; border-radius: 15px; box-shadow: 0 6px 15px rgba(0,0,0,0.15); margin-top: 25px; transition: all 0.3s ease-in-out; border: 1px solid #C7D2FE; }
     .stSidebar .stForm:hover { box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
-    .stSidebar .stForm label {
-        color: #4B0082;
-        font-weight: 600;
-        margin-bottom: 8px;
-        display: block;
-    }
-    .stSidebar .stTextInput > div > div > input {
-        background-color: #FFFFFF;
-        border-radius: 8px !important;
-        border: 1px solid #D1D5DB !important;
-        padding: 10px 12px !important;
-        color: #333333 !important;
-        transition: all 0.2s ease-in-out;
-    }
-    .stSidebar .stTextInput > div > div > input:focus {
-        border-color: #6366F1 !important;
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3) !important;
-        outline: none;
-    }
-    .stSidebar .stForm .stButton > button {
-        width: 100%;
-        background-color: #6366F1;
-        color: white;
-        font-weight: 700;
-        padding: 12px 20px;
-        border-radius: 8px;
-        border: none;
-        transition: all 0.2s ease-in-out;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        margin-top: 20px;
-        letter-spacing: 0.5px;
-    }
-    .stSidebar .stForm .stButton > button:hover {
-        background-color: #4F46E5;
-        transform: translateY(-2px);
-        box-shadow: 0 6px 12px rgba(0,0,0,0.25);
-    }
-    .stSidebar .stForm .stButton > button:active {
-        background-color: #3B34AC;
-        transform: translateY(1px) scale(0.98);
-        box-shadow: 0 1px 3px rgba(0,0,0,0.4);
-    }
+    .stSidebar .stForm label { color: #4B0082; font-weight: 600; margin-bottom: 8px; display: block; }
+    .stSidebar .stTextInput > div > div > input { background-color: #FFFFFF; border-radius: 8px !important; border: 1px solid #D1D5DB !important; padding: 10px 12px !important; color: #333333 !important; transition: all 0.2s ease-in-out; }
+    .stSidebar .stTextInput > div > div > input:focus { border-color: #6366F1 !important; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3) !important; outline: none; }
+    .stSidebar .stForm .stButton > button { width: 100%; background-color: #6366F1; color: white; font-weight: 700; padding: 12px 20px; border-radius: 8px; border: none; transition: all 0.2s ease-in-out; box-shadow: 0 4px 8px rgba(0,0,0,0.2); margin-top: 20px; letter-spacing: 0.5px; }
+    .stSidebar .stForm .stButton > button:hover { background-color: #4F46E5; transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.25); }
+    .stSidebar .stForm .stButton > button:active { background-color: #3B34AC; transform: translateY(1px) scale(0.98); box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
     .stMetric > div[data-testid="stMetricValue"] { font-size: 2em; }
     .stExpander span[data-testid="stExpanderToggleIcon"] { color: #4B0082; }
-    .stExpander button[data-testid="stExpanderToggle"] {
-        background-color: #EEF2FF;
-        border-radius: 10px;
-        border: 1px solid #C7D2FE;
-        padding: 10px 15px;
-        transition: all 0.2s ease;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        color: #4B0082;
-        font-weight: 600;
-        margin-bottom: 10px;
-    }
-    .stExpander button[data-testid="stExpanderToggle"]:hover {
-        background-color: #E0E7FF;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-    .result-card-container {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 15px;
-        justify-content: center;
-        margin-top: 20px;
-    }
-    .result-card {
-        background-color: #F8F8FF;
-        border-radius: 15px;
-        padding: 20px;
-        text-align: center;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        flex: 1 1 calc(33% - 20px);
-        min-width: 250px;
-        max-width: 350px;
-        transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
-        opacity: 0;
-        transform: translateY(20px);
-        animation: fadeInSlideUp 0.6s forwards ease-out;
-    }
-    .result-card:nth-child(1) { animation-delay: 0.1s; }
-    .result-card:nth-child(2) { animation-delay: 0.2s; }
-    .result-card:nth-child(3) { animation-delay: 0.3s; }
-    @keyframes fadeInSlideUp {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    .result-card h4 {
-        color: #4B0082;
-        margin-bottom: 10px;
-        font-weight: 600;
-        font-size: 1.2em;
-    }
-    .result-value {
-        font-size: 2.2em;
-        font-weight: 800;
-        color: #6366F1;
-        word-break: break-word;
-    }
+    .stExpander button[data-testid="stExpanderToggle"] { background-color: #EEF2FF; border-radius: 10px; border: 1px solid #C7D2FE; padding: 10px 15px; transition: all 0.2s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.05); color: #4B0082; font-weight: 600; margin-bottom: 10px; }
+    .stExpander button[data-testid="stExpanderToggle"]:hover { background-color: #E0E7FF; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    .result-card-container { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin-top: 20px; }
+    .result-card { background-color: #F8F8FF; border-radius: 15px; padding: 20px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); flex: 1 1 calc(33% - 20px); min-width: 250px; max-width: 350px; transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out; opacity: 0; transform: translateY(20px); animation: fadeInSlideUp 0.6s forwards ease-out; }
+    .result-card h4 { color: #4B0082; margin-bottom: 10px; font-weight: 600; font-size: 1.2em; }
+    .result-value { font-size: 2.2em; font-weight: 800; color: #6366F1; word-break: break-word; }
     .result-value.positive { color: #10B981; }
     .result-value.negative { color: #EF4444; }
     .result-value.neutral { color: #F59E0B; }
-    .result-card small {
-        display: block;
-        margin-top: 10px;
-        color: #6B7280;
-        font-size: 0.85em;
-    }
+    .result-card small { display: block; margin-top: 10px; color: #6B7280; font-size: 0.85em; }
     .stSubmitButton > button { animation: pulseButton 2s infinite ease-in-out; }
-    @keyframes pulseButton {
-        0% { box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 0 0 0 rgba(99, 102, 241, 0.4); }
-        70% { box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 0 0 10px rgba(99, 102, 241, 0); }
-        100% { box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 0 0 0 rgba(99, 102, 241, 0); }
-    }
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 24px;
-        justify-content: center;
-    }
-    .stTabs [data-baseweb="tab"] {
-        height: 50px;
-        white-space: nowrap;
-        border-radius: 10px 10px 0 0;
-        margin-bottom: -3px;
-        background-color: #EEF2FF;
-        border: 1px solid #C7D2FE;
-        border-bottom: none;
-        color: #4B0082;
-        font-weight: 600;
-        font-size: 1.1em;
-        transition: all 0.2s ease-in-out;
-    }
-    .stTabs [data-baseweb="tab"]:hover {
-        background-color: #E0E7FF;
-        color: #3B34AC;
-    }
-    .stTabs [aria-selected="true"] {
-        background-color: #6366F1;
-        color: white;
-        border: 1px solid #6366F1;
-        border-bottom: none;
-        box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
-    }
-    .stTabs [data-baseweb="tab-panel"] {
-        border: 1px solid #C7D2FE;
-        border-radius: 0 0 10px 10px;
-        padding: 20px;
-        background-color: #F8F8FF;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        margin-bottom: 20px;
-    }
+    @keyframes pulseButton { 0% { box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 0 0 0 rgba(99, 102, 241, 0.4); } 70% { box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 0 0 10px rgba(99, 102, 241, 0); } 100% { box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 0 0 0 rgba(99, 102, 241, 0); } }
+    .stTabs [data-baseweb="tab-list"] { gap: 24px; justify-content: center; }
+    .stTabs [data-baseweb="tab"] { height: 50px; white-space: nowrap; border-radius: 10px 10px 0 0; margin-bottom: -3px; background-color: #EEF2FF; border: 1px solid #C7D2FE; border-bottom: none; color: #4B0082; font-weight: 600; font-size: 1.1em; transition: all 0.2s ease-in-out; }
+    .stTabs [data-baseweb="tab"]:hover { background-color: #E0E7FF; color: #3B34AC; }
+    .stTabs [aria-selected="true"] { background-color: #6366F1; color: white; border: 1px solid #6366F1; border-bottom: none; box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3); }
+    .stTabs [data-baseweb="tab-panel"] { border: 1px solid #C7D2FE; border-radius: 0 0 10px 10px; padding: 20px; background-color: #F8F8FF; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
     </style>
     """,
     unsafe_allow_html=True
@@ -761,7 +472,11 @@ else:
 # --- Main App Content ---
 col_logo, col_header = st.columns([0.3, 0.7])
 with col_logo:
-    st.image("Gemini_Generated_Image_sc8m3ysc8m3ysc8m.png", width=100)
+    # If the image file is not present, Streamlit will show an error; ensure this file exists or replace path
+    try:
+        st.image("Gemini_Generated_Image_sc8m3ysc8m3ysc8m.png", width=100)
+    except Exception:
+        pass
 with col_header:
     st.markdown('<p class="main-header">Complaint Classifier</p>', unsafe_allow_html=True)
 
@@ -771,6 +486,7 @@ st.markdown('<div class="department-container">', unsafe_allow_html=True)
 for dept in DEPARTMENT_COLLECTIONS.keys():
     st.markdown(f'<div class="department-box">{dept}</div>', unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
+
 # Complaint Input
 complaint_text = st.text_area(
     "Write Your Complaint:",
@@ -799,6 +515,7 @@ if submit_button:
             st.rerun()
     else:
         st.warning("कृपया अपनी शिकायत दर्ज करें। (Please enter your complaint before submitting.)")
+
 # --- Conditional Processing Block (runs only when is_processing is True) ---
 if st.session_state.is_processing:
     loader_placeholder.markdown(
@@ -823,6 +540,7 @@ if st.session_state.is_processing:
         loader_placeholder.empty()
         st.error("शिकायत को डेटाबेस में लॉग करने में विफलता। कृपया पुन: प्रयास करें। (Failed to log complaint to database. Please try again.)")
     st.session_state.is_processing = False
+
 if st.session_state.last_result and not st.session_state.is_processing:
     st.markdown("---")
     st.markdown('<h2>Classification Result</h2>', unsafe_allow_html=True)
@@ -903,9 +621,21 @@ if st.session_state.logged_in:
     # The fix is here: Ensure active_tab_index is a valid integer before using.
     if 'active_tab_index' not in st.session_state or not isinstance(st.session_state.active_tab_index, int):
         st.session_state.active_tab_index = 0
-    tab1, tab2 = st.tabs(["📊 Dashboard & Visualizations", "📝 Manage & Update Complaints"], index=st.session_state.active_tab_index)
-    
-    with tab1:
+
+    # Use a radio control to emulate tabs but keep programmatic control via session_state
+    TAB_LABELS = ["📊 Dashboard & Visualizations", "📝 Manage & Update Complaints"]
+    selected_tab_label = st.radio(
+        label="",
+        options=TAB_LABELS,
+        index=st.session_state.active_tab_index,
+        horizontal=True,
+        key="main_tabs_radio"
+    )
+    # Persist selection
+    st.session_state.active_tab_index = TAB_LABELS.index(selected_tab_label)
+
+    # --- Dashboard & Visualizations (previously tab1) ---
+    if selected_tab_label == TAB_LABELS[0]:
         if not all_complaints_df.empty:
             st.markdown("<h3>Complaint Analytics</h3>", unsafe_allow_html=True)
             total_complaints = len(all_complaints_df)
@@ -951,8 +681,9 @@ if st.session_state.logged_in:
             st.plotly_chart(fig_time, use_container_width=True)
         else:
             st.info("No data available for analytics. Submit some complaints first!")
-    
-    with tab2:
+
+    # --- Manage & Update Complaints (previously tab2) ---
+    else:
         st.markdown("<h3>Search & Filter Complaints</h3>", unsafe_allow_html=True)
         with st.expander("Filter Options", expanded=True):
             filter_col1, filter_col2, filter_col3 = st.columns(3)
