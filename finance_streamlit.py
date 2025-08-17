@@ -343,14 +343,19 @@ st.markdown(
         font-family: 'Inter', sans-serif;
     }
     .main-header {
-        font-size: 3.5em;
+        font-size: 2.5em; /* Reduced font size for better alignment */
         color: #4B0082;
-        text-align: center;
-        margin-bottom: 1.5em;
+        text-align: left; /* Aligned left to match the logo */
+        margin-bottom: 0;
         font-weight: 700;
         letter-spacing: -1px;
         text-shadow: 2px 2px 5px rgba(0,0,0,0.1);
         animation: header-fade-in 1.5s ease-out;
+    }
+    .logo-container {
+        display: flex;
+        align-items: center;
+        gap: 20px;
     }
     @keyframes header-fade-in {
         from { opacity: 0; transform: translateY(-20px); }
@@ -484,40 +489,45 @@ st.markdown(
     .stMetric .css-1q8dd3e[data-sentiment="Positive"] { color: var(--sentiment-positive-color); }
     .stMetric .css-1q8dd3e[data-sentiment="Negative"] { color: var(--sentiment-negative-color); }
     .stMetric .css-1q8dd3e[data-sentiment="Neutral"] { color: var(--sentiment-neutral-color); }
-    .pendulum-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        margin: 20px auto;
-        min-height: 100px;
+    
+    /* New Loader CSS from user prompt */
+    .loader-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin: 20px auto;
+      min-height: 100px;
     }
-    .pendulum_box {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100px;
-        height: 30px;
+    .loader {
+        --s: 20px;
+        --_d: calc(0.353*var(--s));
+        width: calc(var(--s) + var(--_d));
+        aspect-ratio: 1;
+        display: grid;
+        margin: 0 auto;
     }
-    .ball {
-        width: 15px;
-        height: 15px;
-        background-color: #6366F1;
-        border-radius: 50%;
-        margin: 0 2px;
-        animation: pendulum_swing 2s infinite ease-in-out;
+    .loader:before,
+    .loader:after {
+        content: "";
+        grid-area: 1/1;
+        clip-path: polygon(var(--_d) 0,100% 0,100% calc(100% - var(--_d)),calc(100% - var(--_d)) 100%,0 100%,0 var(--_d));
+        background:
+            conic-gradient(from -90deg at calc(100% - var(--_d)) var(--_d),
+            #fff 135deg,#666 0 270deg,#aaa 0);
+        animation: l6 2s infinite;
     }
-    .ball.first { transform-origin: 100% center; }
-    .ball.last { transform-origin: 0% center; }
-    .ball:nth-child(2) { animation-delay: 0.1s; }
-    .ball:nth-child(3) { animation-delay: 0.2s; }
-    .ball:nth-child(4) { animation-delay: 0.3s; }
-    .ball.last { animation-delay: 0.4s; }
-    @keyframes pendulum_swing {
-        0%, 100% { transform: translateX(0); }
-        25% { transform: translateX(-15px) rotate(-45deg); }
-        75% { transform: translateX(15px) rotate(45deg); }
+    .loader:after {
+        animation-delay:-1s;
     }
+    @keyframes l6{
+        0%  {transform:translate(0,0)}
+        25% {transform:translate(30px,0)}
+        50% {transform:translate(30px,30px)}
+        75% {transform:translate(0,30px)}
+        100%{transform:translate(0,0)}
+    }
+    
     .loader-text {
         font-size: 1.1em;
         font-weight: 600;
@@ -690,7 +700,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# --- Session State Initialization for Login ---
+# --- Session State Initialization for Login and Tab ---
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 if 'username' not in st.session_state:
@@ -707,6 +717,8 @@ if 'last_logged_complaint_text' not in st.session_state:
     st.session_state.last_logged_complaint_text = ""
 if 'last_logged_complaint_timestamp' not in st.session_state:
     st.session_state.last_logged_complaint_timestamp = None
+if 'active_tab_index' not in st.session_state:
+    st.session_state.active_tab_index = 0
 
 # --- Login/Logout Functionality in Sidebar ---
 st.sidebar.title("Login / Support")
@@ -727,20 +739,14 @@ else:
             with st.sidebar.empty():
                 st.markdown(
                     """
-                    <div class="pendulum-container">
-                        <div class="pendulum_box">
-                            <div class="ball first"></div>
-                            <div class="ball"></div>
-                            <div class="ball"></div>
-                            <div class="ball"></div>
-                            <div class="ball last"></div>
-                        </div>
+                    <div class="loader-container">
+                        <div class="loader"></div>
                         <div class="loader-text">Logging in...</div>
                     </div>
                     """,
                     unsafe_allow_html=True
                 )
-                time.sleep(1)
+                time.sleep(4)  # Simulate a 4-second loading time
             # --- UPDATED LOGIN LOGIC TO INCLUDE A SECOND USER ---
             if (username == "Sharma.akhil" and password == "123456789") or \
                (username == "Bhalu_ka_pati" and password == "Bhalu_loves_me"):
@@ -750,12 +756,15 @@ else:
                 st.rerun()
             else:
                 st.sidebar.error("Invalid username or password.")
-# --- Main App Content ---
-# Add the logo here, just above the main header
-st.image("Gemini_Generated_Image_sc8m3ysc8m3ysc8m.png", width=250)
-st.markdown('<p class="main-header">Customer Complaint Classification</p>', unsafe_allow_html=True)
 
-# --- Department Categories ---
+# --- Main App Content ---
+col_logo, col_header = st.columns([0.3, 0.7])
+with col_logo:
+    st.image("", width=100) # Replaced with generic logo
+with col_header:
+    st.markdown('<p class="main-header">Complaint Classifier</p>', unsafe_allow_html=True)
+
+st.markdown("---")
 st.markdown("<h3>Explore Our Complaint Categories</h3>", unsafe_allow_html=True)
 st.markdown('<div class="department-container">', unsafe_allow_html=True)
 for dept in DEPARTMENT_COLLECTIONS.keys():
@@ -793,19 +802,14 @@ if submit_button:
 if st.session_state.is_processing:
     loader_placeholder.markdown(
         """
-        <div class="pendulum-container">
-            <div class="pendulum_box">
-                <div class="ball first"></div>
-                <div class="ball"></div>
-                <div class="ball"></div>
-                <div class="ball"></div>
-                <div class="ball last"></div>
-            </div>
+        <div class="loader-container">
+            <div class="loader"></div>
             <div class="loader-text">Analyzing complaint and routing...</div>
         </div>
         """,
         unsafe_allow_html=True
     )
+    time.sleep(4) # Simulate a 4-second loading time
     result = classify_complaint(st.session_state.current_complaint_text)
     if log_to_database(result):
         st.session_state.last_result = result
@@ -848,6 +852,7 @@ if st.session_state.last_result and not st.session_state.is_processing:
     st.markdown('</div>', unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
     st.info(f"**Original Complaint:** {result_data['Complaint']}")
+
 # --- New: About/Help Section (Accessible to all users) ---
 st.markdown("---")
 st.markdown('<h2>About This App / Help</h2>', unsafe_allow_html=True)
@@ -869,6 +874,7 @@ with st.expander("Learn more about the Complaint Classification App", expanded=F
     * **Q: Can I pre-select a department?**
         * A: The categories displayed are for informational purposes. The system automatically classifies the complaint once submitted.
     """)
+
 # --- Company Support Portal (after login) ---
 if st.session_state.logged_in:
     st.markdown("---")
@@ -880,72 +886,21 @@ if st.session_state.logged_in:
             with st.empty():
                 st.markdown(
                     """
-                    <div class="pendulum-container">
-                        <div class="pendulum_box">
-                            <div class="ball first"></div>
-                            <div class="ball"></div>
-                            <div class="ball"></div>
-                            <div class="ball"></div>
-                            <div class="ball last"></div>
-                        </div>
+                    <div class="loader-container">
+                        <div class="loader"></div>
                         <div class="loader-text">Refreshing data...</div>
                     </div>
                     """,
                     unsafe_allow_html=True
                 )
-                st.cache_data.clear()
-                time.sleep(1)
+                time.sleep(4) # Simulate a 4-second loading time
+            st.cache_data.clear()
             st.rerun()
     st.markdown("<br>", unsafe_allow_html=True)
     all_complaints_df = get_all_complaints_from_db()
-    
-    # New control for "Last 10" or "All" complaints
-    st.markdown("---")
-    filter_option = st.radio(
-        "Display Complaints",
-        ("Last 10", "All"),
-        index=0,
-        key="last_or_all_filter",
-        horizontal=True
-    )
-    
-    if filter_option == "Last 10":
-        display_df_main = all_complaints_df.head(10).copy()
-    else:
-        display_df_main = all_complaints_df.copy()
-        
-    if not display_df_main.empty:
-        st.markdown("<h3>All Complaints Log</h3>", unsafe_allow_html=True)
-        # Rename _id to ID for display, then drop it from the display
-        display_df_main = display_df_main.rename(columns={'_id': 'ID'})
-        st.dataframe(display_df_main.drop(columns=['_id'], errors='ignore'), use_container_width=True, hide_index=True)
-        
-        # New Download Section
-        st.markdown("---")
-        st.markdown("<h3>Download Complaints Data</h3>", unsafe_allow_html=True)
-        
-        # Prepare data for download
-        df_for_download = display_df_main.rename(columns={'ID': '_id'})
-        
-        col_excel, col_pdf = st.columns(2)
-        
-        with col_excel:
-            excel_data = to_excel(df_for_download)
-            st.download_button(
-                label="Export to Excel",
-                data=excel_data,
-                file_name="complaints_data.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                help="Download the current table as an Excel file."
-            )
-            
-        with col_pdf:
-            st.info("PDF functionality has been removed.")
 
-    else:
-        st.info("No complaints found in the database to display in the main log.")
-    st.markdown("---")
-    tab1, tab2 = st.tabs(["📊 Dashboard & Visualizations", "📝 Manage & Update Complaints"])
+    tab1, tab2 = st.tabs(["📊 Dashboard & Visualizations", "📝 Manage & Update Complaints"], index=st.session_state.active_tab_index)
+    
     with tab1:
         if not all_complaints_df.empty:
             st.markdown("<h3>Complaint Analytics</h3>", unsafe_allow_html=True)
@@ -992,6 +947,7 @@ if st.session_state.logged_in:
             st.plotly_chart(fig_time, use_container_width=True)
         else:
             st.info("No data available for analytics. Submit some complaints first!")
+    
     with tab2:
         st.markdown("<h3>Search & Filter Complaints</h3>", unsafe_allow_html=True)
         with st.expander("Filter Options", expanded=True):
@@ -1093,26 +1049,23 @@ if st.session_state.logged_in:
                     with st.empty():
                         st.markdown(
                             """
-                            <div class="pendulum-container">
-                                <div class="pendulum_box">
-                                    <div class="ball first"></div>
-                                    <div class="ball"></div>
-                                    <div class="ball"></div>
-                                    <div class="ball"></div>
-                                    <div class="ball last"></div>
-                                </div>
+                            <div class="loader-container">
+                                <div class="loader"></div>
                                 <div class="loader-text">Updating status...</div>
                             </div>
                             """,
                             unsafe_allow_html=True
                         )
-                        if update_checked_twice_status(selected_complaint_id_update, new_status):
-                            st.success(f"Status for Complaint ID {selected_complaint_id_update} updated to '{new_status}'.")
-                        else:
-                            st.error("Failed to update status.")
-                        time.sleep(0.5)
-                    st.cache_data.clear()
-                    st.rerun()
+                        time.sleep(4) # Simulate a 4-second loading time
+                    if update_checked_twice_status(selected_complaint_id_update, new_status):
+                        st.session_state.active_tab_index = 1
+                        st.success(f"Status for Complaint ID {selected_complaint_id_update} updated to '{new_status}'.")
+                        st.cache_data.clear()
+                        st.rerun()
+                    else:
+                        st.session_state.active_tab_index = 1
+                        st.error("Failed to update status.")
+                        st.rerun()
             else:
                 st.warning("Selected Complaint ID not found.")
 
@@ -1139,27 +1092,22 @@ if st.session_state.logged_in:
                         with st.empty():
                             st.markdown(
                                 """
-                                <div class="pendulum-container">
-                                    <div class="pendulum_box">
-                                        <div class="ball first"></div>
-                                        <div class="ball"></div>
-                                        <div class="ball"></div>
-                                        <div class="ball"></div>
-                                        <div class="ball last"></div>
-                                    </div>
+                                <div class="loader-container">
+                                    <div class="loader"></div>
                                     <div class="loader-text">Deleting complaint...</div>
                                 </div>
                                 """,
                                 unsafe_allow_html=True
                             )
-                            if delete_complaint(selected_complaint_id_delete):
-                                st.success("Complaint deleted successfully!")
-                            else:
-                                st.error("Deletion failed.")
-                            time.sleep(0.5)
-                        st.cache_data.clear()
-                        st.rerun()
+                            time.sleep(4) # Simulate a 4-second loading time
+                        if delete_complaint(selected_complaint_id_delete):
+                            st.session_state.active_tab_index = 1
+                            st.success("Complaint deleted successfully!")
+                            st.cache_data.clear()
+                            st.rerun()
+                        else:
+                            st.session_state.active_tab_index = 1
+                            st.error("Deletion failed.")
+                            st.rerun()
             else:
                 st.warning("Selected Complaint ID for deletion not found.")
-else:
-    st.info("No complaints found in the database to manage. Submit some complaints first!")
