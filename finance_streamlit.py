@@ -760,7 +760,7 @@ else:
 # --- Main App Content ---
 col_logo, col_header = st.columns([0.3, 0.7])
 with col_logo:
-    st.image("", width=100) # Replaced with generic logo
+    st.image("Gemini_Generated_Image_sc8m3ysc8m3ysc8m", width=100) # Replaced with generic logo
 with col_header:
     st.markdown('<p class="main-header">Complaint Classifier</p>', unsafe_allow_html=True)
 
