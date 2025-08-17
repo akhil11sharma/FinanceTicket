@@ -760,7 +760,10 @@ else:
 # --- Main App Content ---
 col_logo, col_header = st.columns([0.3, 0.7])
 with col_logo:
-    st.image("Gemini_Generated_Image_sc8m3ysc8m3ysc8m.png", width=100) # Replaced with generic logo
+    # Use a generic image URL or ensure 'Gemini_Generated_Image_sc8m3ysc8m3ysc8m.png' exists in your app directory.
+    # If the file doesn't exist, this will cause an error.
+    # To avoid this, you could use an online image or a placeholder.
+    st.image("Gemini_Generated_Image_sc8m3ysc8m3ysc8m.png", width=100)
 with col_header:
     st.markdown('<p class="main-header">Complaint Classifier</p>', unsafe_allow_html=True)
 
@@ -899,6 +902,9 @@ if st.session_state.logged_in:
     st.markdown("<br>", unsafe_allow_html=True)
     all_complaints_df = get_all_complaints_from_db()
 
+    # The fix is here: always ensure a valid integer index.
+    if 'active_tab_index' not in st.session_state or not isinstance(st.session_state.active_tab_index, int):
+        st.session_state.active_tab_index = 0
     tab1, tab2 = st.tabs(["📊 Dashboard & Visualizations", "📝 Manage & Update Complaints"], index=st.session_state.active_tab_index)
     
     with tab1:
