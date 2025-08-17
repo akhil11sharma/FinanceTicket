@@ -35,7 +35,6 @@ DEPARTMENT_COLLECTIONS = {
 
 # --- Department multilingual descriptions ---
 def get_department_descriptions():
-    """Return dictionary of department -> language -> description."""
     return {
         'Credit card / Prepaid card': {
             'English': "Handles issues related to credit and prepaid cards — billing disputes, lost/stolen cards, charges, rewards and statements.",
@@ -74,12 +73,21 @@ def get_department_descriptions():
             'Hindi': "अन्य शिकायतें जो मुख्य श्रेणियों में फिट नहीं होतीं — मैन्युअल समीक्षा के लिए रूट की जाएँगी।",
             'Marathi': "इतर तक्रारी ज्या मुख्य श्रेणीत बसत नाहीत — मैन्युअल पुनरावलोकनासाठी मार्गदर्शित केल्या जातील.",
             'Punjabi': "ਹੋਰ ਸ਼ਿਕਾਇਤਾਂ ਜੋ ਪ੍ਰਮੁੱਖ ਵਰਗਾਂ ਵਿੱਚ ਫਿੱਟ ਨਹੀਂ ਹੁੰਦੀਆਂ — ਮੈਨੁਅਲ ਸਮੀਖਿਆ ਲਈ ਰੂਟ ਕੀਤੀਆਂ ਜਾਣਗੀਆਂ।",
-            'Kannada': "ಇತರೆ ಕೊಡಂಬರಿ ಜತೆಗಿನ ದೂರುಗಳು — ಮುಖ್ಯ ವರ್ಗಗಳಿಗೆ ಹೊಂದದವು — ಕೈಯಿಂದ ಪರಿಶీలನೆಗೆ ರೂಟ್ ಮಾಡಲಾಗುವುದು.",
+            'Kannada': "ಇತರೆ ಕೊಡಂಬರಿ ಜತೆಗಿನ ದೂರುಗಳು — ಮುಖ್ಯ ವರ್ಗಗಳಿಗೆ ಹೊಂದದವು — ಕೈಯಿಂದ ಪರಿಶೀಲನೆಗೆ ರೂಟ್ ಮಾಡಲಾಗುವುದು.",
             'Malayalam': "പ്രധാന വിഭാഗങ്ങളിലേക്ക് പെട്ടില്ലാത്ത വിവിധ പരാതികൾ — മാനുവൽ റിവ്യൂവിന് റൂട്ടുചെയ്യുന്നു."
         }
     }
 
 DEPT_DESCRIPTIONS = get_department_descriptions()
+
+# --- small sample complaints per department (for quick demo insertion) ---
+DEPT_SAMPLES = {
+    'Credit card / Prepaid card': "My credit card was double charged for the same purchase and the statement shows an extra fee.",
+    'Bank account services': "I can't access my bank account through the mobile app; login keeps failing despite correct credentials.",
+    'Theft/Dispute reporting': "There are unauthorized transactions on my account that I did not make — looks like fraud.",
+    'Mortgages/loans': "My loan EMI amount is incorrect after the refinance; please check interest rate calculations.",
+    'Others': "I have a general product feedback regarding the customer portal layout and accessibility."
+}
 
 # --- Database Connection and Table Creation (Cached) ---
 @st.cache_resource
@@ -121,21 +129,24 @@ def get_all_complaints_from_db():
 def update_checked_twice_status(complaint_id, status):
     try:
         main_collection = db[MAIN_COLLECTION_NAME]
-        doc = main_collection.find_one({"_id": ObjectId(complaint_id)})
+        # Wrap ObjectId conversion defensively
+        try:
+            oid = ObjectId(complaint_id)
+            doc = main_collection.find_one({"_id": oid})
+        except Exception:
+            doc = main_collection.find_one({"_id": complaint_id})
         if not doc:
             return False
         predicted_department = doc.get("predicted_department")
         dept_collection_name = DEPARTMENT_COLLECTIONS.get(predicted_department)
-        result_main = main_collection.update_one(
-            {"_id": ObjectId(complaint_id)},
-            {"$set": {"checked_twice": status}}
-        )
+        if isinstance(doc.get("_id"), ObjectId):
+            query_id = ObjectId(complaint_id)
+        else:
+            query_id = complaint_id
+        result_main = main_collection.update_one({"_id": query_id}, {"$set": {"checked_twice": status}})
         if dept_collection_name:
             dept_collection = db[dept_collection_name]
-            dept_collection.update_one(
-                {"_id": ObjectId(complaint_id)},
-                {"$set": {"checked_twice": status}}
-            )
+            dept_collection.update_one({"_id": query_id}, {"$set": {"checked_twice": status}})
         return result_main.modified_count > 0
     except Exception as e:
         st.error(f"Error updating complaint ID {complaint_id}: {e}")
@@ -144,16 +155,24 @@ def update_checked_twice_status(complaint_id, status):
 def delete_complaint(complaint_id):
     try:
         main_collection = db[MAIN_COLLECTION_NAME]
-        doc = main_collection.find_one({"_id": ObjectId(complaint_id)})
+        try:
+            oid = ObjectId(complaint_id)
+            doc = main_collection.find_one({"_id": oid})
+        except Exception:
+            doc = main_collection.find_one({"_id": complaint_id})
         if not doc:
             st.warning(f"Complaint ID {complaint_id} not found in the main log. No deletion performed.")
             return False
         predicted_department = doc.get("predicted_department")
         dept_collection_name = DEPARTMENT_COLLECTIONS.get(predicted_department)
-        result_main = main_collection.delete_one({"_id": ObjectId(complaint_id)})
+        if isinstance(doc.get("_id"), ObjectId):
+            query_id = ObjectId(complaint_id)
+        else:
+            query_id = complaint_id
+        result_main = main_collection.delete_one({"_id": query_id})
         if dept_collection_name:
             dept_collection = db[dept_collection_name]
-            dept_collection.delete_one({"_id": ObjectId(complaint_id)})
+            dept_collection.delete_one({"_id": query_id})
         return result_main.deleted_count > 0
     except Exception as e:
         st.error(f"Error deleting complaint ID {complaint_id}: {e}")
@@ -334,33 +353,28 @@ def to_excel(df):
     writer.close()
     return output.getvalue()
 
-# --- Styling (kept theme but simplified for interactive cards) ---
+# --- Styling (compact card UI) ---
 st.markdown(
     """
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     html, body, [class*="st-"] { font-family: 'Inter', sans-serif; }
-    .main-header { font-size: 2.4em; color: #4B0082; text-align: center; margin-bottom: 0.5em; font-weight: 700; }
-    .dept-card {
-        background: linear-gradient(180deg, #EEF2FF 0%, #E9F0FF 100%);
-        border-radius: 12px;
-        padding: 18px;
-        text-align: center;
-        font-weight: 700;
-        color: #2b0b5a;
-        box-shadow: 0 6px 18px rgba(99, 102, 241, 0.12);
-        border: 1px solid #C7D2FE;
-        transition: transform 0.15s ease, box-shadow 0.15s ease;
-        cursor: pointer;
+    .mini-card {
+        background: linear-gradient(180deg,#f7f8ff 0%,#eef2ff 100%);
+        border-radius:10px;
+        padding:10px 12px;
+        text-align:center;
+        font-weight:700;
+        color:#2b0b5a;
+        border:1px solid #e6e9ff;
+        box-shadow:0 6px 18px rgba(99,102,241,0.06);
     }
-    .dept-card:hover { transform: translateY(-6px); box-shadow: 0 10px 25px rgba(99, 102, 241, 0.16); }
-    .dept-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 16px; }
-    .lang-title { font-weight: 700; margin-top: 10px; color: #3B366A; }
-    .lang-block { background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #f0eff7; margin-bottom: 8px; }
-    .small-note { color: #6B7280; font-size: 0.95em; }
+    .mini-card-title { font-size:0.95rem; margin-bottom:6px; }
+    .mini-card-note { font-size:0.82rem; color:#6b7280; margin-top:6px; }
+    .info-row { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    .compact-btn { padding:6px 10px; font-size:0.9rem; }
     </style>
-    """,
-    unsafe_allow_html=True
+    """, unsafe_allow_html=True
 )
 
 # --- Session State Initialization ---
@@ -374,8 +388,6 @@ if 'last_logged_complaint_text' not in st.session_state: st.session_state.last_l
 if 'last_logged_complaint_timestamp' not in st.session_state: st.session_state.last_logged_complaint_timestamp = None
 if 'active_tab_index' not in st.session_state or not isinstance(st.session_state.active_tab_index, int):
     st.session_state.active_tab_index = 0
-if 'selected_dept' not in st.session_state:
-    st.session_state.selected_dept = None
 
 # --- Sidebar Login ---
 st.sidebar.title("Login / Support")
@@ -405,58 +417,67 @@ else:
             else:
                 st.sidebar.error("Invalid username or password.")
 
-# --- Header & Categories Board ---
+# --- Header & Compact Categories Board ---
 cols = st.columns([1, 3, 1])
 with cols[1]:
-    # optional logo
     try:
         st.image("Gemini_Generated_Image_sc8m3ysc8m3ysc8m.png", width=120)
     except Exception:
         pass
-    st.markdown('<p class="main-header">Customer Complaint Classification</p>', unsafe_allow_html=True)
+    st.markdown('<h2 style="text-align:center;color:#4B0082;margin:0.2rem 0">Customer Complaint Classification</h2>', unsafe_allow_html=True)
 
 st.markdown("---")
-st.markdown("<h3 style='text-align:left'>Explore Our Complaint Categories</h3>", unsafe_allow_html=True)
+st.markdown("<h4 style='margin-bottom:0.4rem;'>Explore Our Complaint Categories — click Info to learn more</h4>", unsafe_allow_html=True)
 
-# Interactive department grid: render as clickable buttons
-st.markdown('<div class="dept-grid">', unsafe_allow_html=True)
-# We'll create one fake "button" by using st.button for each department but style with markdown wrapper
-for i, dept in enumerate(DEPARTMENT_COLLECTIONS.keys()):
-    btn_key = f"dept_btn_{i}"
-    # Render a styled div with a hidden st.button underneath for accessibility/control
-    # Use columns to keep structure consistent
-    # Create one column per dept in a responsive grid using markdown card and an actual button under the hood.
-    card_html = f"""<div class="dept-card">{dept}</div>"""
-    # We can't attach onclick JS reliably cross Streamlit versions, so render the card and then a small hidden button.
-    st.markdown(card_html, unsafe_allow_html=True)
-    # invisible button (but still clickable): actually show a small transparent button right after card to catch clicks
-    # To keep UI tidy, we show a real button with label "Open" but visually hidden via CSS could be complex.
-    # Simpler UX: show the card and then a visible "Learn" button below it for accessibility.
-    if st.button(f"Learn about '{dept}'", key=btn_key):
-        st.session_state.selected_dept = dept
-st.markdown('</div>', unsafe_allow_html=True)
-
-# If user clicked a department, show the multilingual dialog (expander)
-if st.session_state.selected_dept:
-    sel = st.session_state.selected_dept
-    st.markdown(f"### About: {sel}")
-    # show a compact dialog-like block with language tabs (simple stacked)
-    for lang, desc in DEPT_DESCRIPTIONS.get(sel, {}).items():
-        st.markdown(f'<div class="lang-block"><div class="lang-title">{lang}</div><div>{desc}</div></div>', unsafe_allow_html=True)
-    # Provide quick actions: route sample text, close
-    st.markdown('<div style="display:flex;gap:8px;margin-top:8px;">', unsafe_allow_html=True)
-    if st.button("Close", key="close_dept_info"):
-        st.session_state.selected_dept = None
-    st.markdown('</div>', unsafe_allow_html=True)
-    st.markdown("---")
+# Compact 3-column layout of department mini-cards with Info button that opens a modal
+dept_keys = list(DEPARTMENT_COLLECTIONS.keys())
+cols = st.columns(3)
+for idx, dept in enumerate(dept_keys):
+    col = cols[idx % 3]
+    with col:
+        st.markdown(f'<div class="mini-card"><div class="mini-card-title">{dept}</div><div class="mini-card-note">Tap Info for details & sample</div></div>', unsafe_allow_html=True)
+        if st.button("Info", key=f"info_btn_{idx}", help="Open details dialog"):
+            # open a modal with multilingual description and sample insertion
+            modal_title = f"{dept} — Details"
+            try:
+                with st.modal(modal_title):
+                    # top row: language selector + close (close provided by builtin modal)
+                    languages = list(DEPT_DESCRIPTIONS.get(dept, {}).keys())
+                    selected_lang = st.selectbox("Language", languages, index=0)
+                    st.markdown("---")
+                    st.markdown(f"**{selected_lang}**")
+                    st.write(DEPT_DESCRIPTIONS.get(dept, {}).get(selected_lang, "No description available."))
+                    st.markdown("---")
+                    st.write("**Sample complaint (one-click insert):**")
+                    st.code(DEPT_SAMPLES.get(dept, ""))
+                    st.write("")
+                    insert_col1, insert_col2 = st.columns([2,1])
+                    with insert_col1:
+                        if st.button("Insert sample into complaint box", key=f"insert_sample_{idx}"):
+                            # Populate the current complaint text area for the current input key
+                            input_key = f"complaint_input_{st.session_state.complaint_input_key}"
+                            st.session_state[input_key] = DEPT_SAMPLES.get(dept, "")
+                            st.success("Sample inserted into complaint box.")
+                    with insert_col2:
+                        if st.button("Close", key=f"close_modal_btn_{idx}"):
+                            # just exit modal; nothing else required
+                            pass
+            except Exception:
+                # Fallback to expanders if st.modal not available in the environment
+                st.warning("Modal not supported in this Streamlit runtime. Showing inline details instead.")
+                st.expander(f"{dept} details (fallback)")
+                st.markdown(f"**English:** {DEPT_DESCRIPTIONS[dept].get('English','')}")
+                st.write("")
+st.markdown("---")
 
 # --- Complaint input & submit (unchanged) ---
+complaint_key = f"complaint_input_{st.session_state.complaint_input_key}"
 complaint_text = st.text_area(
     "Write Your Complaint:",
     height=150,
     placeholder="Describe your issue here...",
-    key=f"complaint_input_{st.session_state.complaint_input_key}",
-    value="" if st.session_state.is_processing else st.session_state.get(f"complaint_input_{st.session_state.complaint_input_key}", "")
+    key=complaint_key,
+    value="" if st.session_state.is_processing else st.session_state.get(complaint_key, "")
 )
 loader_placeholder = st.empty()
 submit_button = st.button("Submit Complaint", key="main_submit_complaint_button")
@@ -505,19 +526,18 @@ if st.session_state.is_processing:
 # Show the last classification result
 if st.session_state.last_result and not st.session_state.is_processing:
     st.markdown("---")
-    st.markdown('<h2>Classification Result</h2>', unsafe_allow_html=True)
+    st.markdown('<h3 style="margin-bottom:0.4rem;">Classification Result</h3>', unsafe_allow_html=True)
     rd = st.session_state.last_result
-    sentiment_class = rd['Sentiment'].lower()
     st.markdown(f"""
     <div style="display:flex;gap:12px;flex-wrap:wrap;">
-        <div style="background:#F8F8FF;padding:14px;border-radius:10px;min-width:180px;">
-            <strong>Sentiment</strong><div style="font-size:1.3em">{rd['Sentiment']}</div>
+        <div style="background:#F8F8FF;padding:12px;border-radius:10px;min-width:140px;">
+            <strong>Sentiment</strong><div style="font-size:1.05rem">{rd['Sentiment']}</div>
         </div>
-        <div style="background:#F8F8FF;padding:14px;border-radius:10px;min-width:180px;">
-            <strong>Score</strong><div style="font-size:1.3em">{rd['Score']:.4f}</div>
+        <div style="background:#F8F8FF;padding:12px;border-radius:10px;min-width:140px;">
+            <strong>Score</strong><div style="font-size:1.05rem">{rd['Score']:.4f}</div>
         </div>
-        <div style="background:#F8F8FF;padding:14px;border-radius:10px;min-width:180px;">
-            <strong>Department</strong><div style="font-size:1.3em">{rd['Predicted Department']}</div>
+        <div style="background:#F8F8FF;padding:12px;border-radius:10px;min-width:140px;">
+            <strong>Department</strong><div style="font-size:1.05rem">{rd['Predicted Department']}</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -529,7 +549,7 @@ with st.expander("About This App / Help", expanded=False):
     st.markdown("""
     This application classifies customer complaints into departmental categories and analyzes sentiment.
     Hybrid approach: rule-based keywords + VADER + ML fallback model.
-    Use the interactive board above to understand what each department handles (available in multiple languages).
+    Use the compact Info buttons above to open modal dialogs (language selector + sample insertion).
     """)
 
 # --- Admin Portal (visible after login) ---
