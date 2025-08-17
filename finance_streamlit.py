@@ -42,7 +42,7 @@ def get_department_descriptions():
             'Marathi': "क्रेडिट/प्रीपेड कार्डशी संबंधित समस्या — बिल वाद, हरवले/चोरलेले कार्ड, चार्ज, रिवॉर्ड आणि स्टेटमेंट.",
             'Punjabi': "ਕ੍ਰੈਡਿਟ/ਪ੍ਰੀਪੇਡ ਕਾਰਡ ਸਬੰਧੀ ਮੁੱਦੇ — ਬਿੱਲ ਵਿਵਾਦ, ਗੁੰਮ/ਚੋਰੀ ਕਾਰਡ, ਚਾਰਜ, ਇਨਾਮ ਅਤੇ ਸਟੇਟਮੈਂਟ।",
             'Kannada': "ಕ್ರೆಡಿಟ್/ಪ್ರೀಪೇಯ್ಡ್ ಕಾರ್ಡ್ ಸಂಬಂಧಿತ ಸಮಸ್ಯೆಗಳು — ಬಿಲ್ಲಿಂಗ್ ವಿವಾದಗಳು, ಕಳೆದುಕೊಂಡ/ದೋಚಲ್ಪಟ್ಟ ಕಾರ್ಡ್, ಶುಲ್ಕಗಳು, ರಿವಾರ್ಡ್ಸ್ ಮತ್ತು ಸ್ಟೇಟ್ಮೆಂಟ್.",
-            'Malayalam': "ക്രെഡിറ്റ്/പ്രീപെയ്ഡ് കാർഡ് സംബന്ധിച്ച പ്രശ്നങ്ങൾ — ബില്ലിംഗ് വിക്ഷേപങ്ങൾ, നഷ്ടമോ മോഷ്ടിക്കപ്പെട്ട കാർഡുകൾ, ചാർജുകൾ, റിവാർഡുകൾ, സ്റ്റേറ്റ്മെന്റുകൾ."
+            'Malayalam': "ക്രെഡിറ്റ്/പ്രീപെയ്ഡ് കാർഡ് ബന്ധപ്പെട്ട പ്രശ്നങ്ങൾ — ബില്ലിംഗ് പ്രശ്നങ്ങൾ, നഷ്ടമായോ മോഷ്ടിക്കപ്പെട്ട കാർഡുകൾ, ചാർജുകൾ, റിവാർഡുകൾ, സ്റ്റേറ്റ്മെന്റുകൾ."
         },
         'Bank account services': {
             'English': "Account access, deposits, withdrawals, transfers, login issues, and other account management queries.",
@@ -58,7 +58,7 @@ def get_department_descriptions():
             'Marathi': "फraud, अनधिकृत व्यवहार, ओळख चोरी, वाद आणि सुरक्षा घटना. प्राधान्याने हाताळण्याचा सल्ला.",
             'Punjabi': "ਧੋਖਾਧੜੀ, ਬਿਨਾਂ ਆਗਿਆ ਵਾਲੇ ਲੈਣ-ਦੇਣ, ਪਛਾਣ ਚੋਰੀ, ਵਿਵਾਦ ਅਤੇ ਸੁਰੱਖਿਆ ਘਟਨਾਵਾਂ। ਤਰਜੀਹੀ ਸੰਭਾਲ ਦੀ ਸਿਫਾਰਿਸ਼।",
             'Kannada': "ವಂಚನೆ, ನಿರಾಕೃತ ಲೆನದेन, ಗುರುತು ಕಳವರು, ವಾದಗಳು ಮತ್ತು ಭದ್ರತಾ ಘಟನೆಗಳು. ಪ್ರಾಥಮ್ಯತೆಯಿಂದ ನಿರ್ವಹಿಸುವ ಶಿಫಾರಸು.",
-            'Malayalam': "ഫ്രൗഡ്, അനധികൃത ഇടപാട്, തിരിച്ചറിയൽ മോഷണം, വിവാദങ്ങൾ, സുരക്ഷാ സംഭവങ്ങൾ — പ്രാഥമിക കൈകര്യം നിർദ്ദേശിക്കുന്നു."
+            'Malayalam': "ഫ്രോഡ്, അനധികൃത ഇടപാടുകൾ, തിരിച്ചറിയൽ മോഷണം, വിവാദങ്ങൾ, സുരക്ഷാ சம்பവങ്ങൾ — പ്രാഥമിക കൈകാര്യം നിർദ്ദേശിക്കുന്നു."
         },
         'Mortgages/loans': {
             'English': "Mortgage and loan enquiries — EMI, interest rates, repayment schedules, loan approval, refinancing queries.",
@@ -66,15 +66,15 @@ def get_department_descriptions():
             'Marathi': "गृहकर्ज/कर्ज संबंधित प्रश्न — EMI, व्याज दर, परतफेड वेळापत्रक, कर्ज मंजुरी, रिफायनान्सिंग प्रश्न.",
             'Punjabi': "ਮੋਰਟਗੇਜ/ਲੋਨ ਸਵਾਲ — EMI, ਬਿਆਜ ਦਰਾਂ, ਵਾਪਸੀ ਸਮਾਂ-ਸੂਚੀ, ਲੋਨ ਮਨਜ਼ੂਰੀ, ਰੀਫਾਇਨੈਂਸਿੰਗ ਪ੍ਰਸ਼ਨ।",
             'Kannada': "ಮಾರ್ಗೇಜ್/ಉಧಾರ ವಿಚಾರಣೆ — EMI, ಬಡ್ಡಿದರ, ಮರುಪಾವತಿ ವೇಳಾಪಟ್ಟಿ, ಸಾಲ ಅಂಗೀಕಾರ, ಮರುನಿವೇಶನ ಪ್ರಶ್ನೆಗಳು.",
-            'Malayalam': "മോർട്ട്ഗേജ്/ഋണം സംബന്ധിച്ച അന്വേഷണം — EMI, പലിശനിരക്കുകൾ, പുനരായത് പദ്ധതി, വായ്പ അംഗീകാരം, റിഫൈനാൻസിങ്."
+            'Malayalam': "മോർട്ട്ഗേജ്/ഋണം സംബന്ധിച്ച അന്വേഷണം — EMI, പലിശനിരക്കുകൾ, പുനരവസാനം, വായ്പ അംഗീകാരം, റീഫൈനാൻസിംഗ്."
         },
         'Others': {
             'English': "Miscellaneous complaints that don't fit primary categories — will be routed to manual review.",
             'Hindi': "अन्य शिकायतें जो मुख्य श्रेणियों में फिट नहीं होतीं — मैन्युअल समीक्षा के लिए रूट की जाएँगी।",
             'Marathi': "इतर तक्रारी ज्या मुख्य श्रेणीत बसत नाहीत — मैन्युअल पुनरावलोकनासाठी मार्गदर्शित केल्या जातील.",
-            'Punjabi': "ਹੋਰ ਸ਼ਿਕਾਇਤਾਂ ਜੋ ਪ੍ਰਮੁੱਖ ਵਰਗਾਂ ਵਿੱਚ ਫਿੱਟ ਨਹੀਂ ਹੁੰਦੀਆਂ — ਮੈਨੁਅਲ ਸਮੀਖਿਆ ਲਈ ਰੂਟ ਕੀਤੀਆਂ ਜਾਣਗੀਆਂ।",
-            'Kannada': "ಇತರೆ ಕೊಡಂಬರಿ ಜತೆಗಿನ ದೂರುಗಳು — ಮುಖ್ಯ ವರ್ಗಗಳಿಗೆ ಹೊಂದದವು — ಕೈಯಿಂದ ಪರಿಶೀಲನೆಗೆ ರೂಟ್ ಮಾಡಲಾಗುವುದು.",
-            'Malayalam': "പ്രധാന വിഭാഗങ്ങളിലേക്ക് പെട്ടില്ലാത്ത വിവിധ പരാതികൾ — മാനുവൽ റിവ്യൂവിന് റൂട്ടുചെയ്യുന്നു."
+            'Punjabi': "ਹੋਰ ਸ਼ਿਕਾਇਤਾਂ ਜੋ ਪ੍ਰਮુખ ਵਰਗਾਂ ਵਿੱਚ ਫਿੱਟ ਨਹੀਂ ਹੁੰਦੀਆਂ — ਮੈਨੁਅਲ ਸਮੀਖਿਆ ਲਈ ਰੂਟ ਕੀਤੀਆਂ ਜਾਣਗੀਆਂ।",
+            'Kannada': "ಇತರೆ ದೂರುಗಳು — ಮುಖ್ಯ ವಿಭಾಗಗಳಿಗೆ ಹೊಂದದವು — ಕೈಯಿಂದ ಪರಿಶೀಲನೆಗೆ ರೂಟ್ ಮಾಡಲಾಗುವುದು.",
+            'Malayalam': "പ്രധാന വിഭാഗങ്ങളിലേക്ക് പെടാത്ത വിവിധ പരാതികൾ — മാനുവൽ റിവ്യൂവിന് റൂട്ടുചെയ്യും."
         }
     }
 
@@ -133,16 +133,14 @@ def update_checked_twice_status(complaint_id, status):
         try:
             oid = ObjectId(complaint_id)
             doc = main_collection.find_one({"_id": oid})
+            query_id = oid
         except Exception:
             doc = main_collection.find_one({"_id": complaint_id})
+            query_id = complaint_id
         if not doc:
             return False
         predicted_department = doc.get("predicted_department")
         dept_collection_name = DEPARTMENT_COLLECTIONS.get(predicted_department)
-        if isinstance(doc.get("_id"), ObjectId):
-            query_id = ObjectId(complaint_id)
-        else:
-            query_id = complaint_id
         result_main = main_collection.update_one({"_id": query_id}, {"$set": {"checked_twice": status}})
         if dept_collection_name:
             dept_collection = db[dept_collection_name]
@@ -158,17 +156,15 @@ def delete_complaint(complaint_id):
         try:
             oid = ObjectId(complaint_id)
             doc = main_collection.find_one({"_id": oid})
+            query_id = oid
         except Exception:
             doc = main_collection.find_one({"_id": complaint_id})
+            query_id = complaint_id
         if not doc:
             st.warning(f"Complaint ID {complaint_id} not found in the main log. No deletion performed.")
             return False
         predicted_department = doc.get("predicted_department")
         dept_collection_name = DEPARTMENT_COLLECTIONS.get(predicted_department)
-        if isinstance(doc.get("_id"), ObjectId):
-            query_id = ObjectId(complaint_id)
-        else:
-            query_id = complaint_id
         result_main = main_collection.delete_one({"_id": query_id})
         if dept_collection_name:
             dept_collection = db[dept_collection_name]
@@ -371,8 +367,16 @@ st.markdown(
     }
     .mini-card-title { font-size:0.95rem; margin-bottom:6px; }
     .mini-card-note { font-size:0.82rem; color:#6b7280; margin-top:6px; }
-    .info-row { display:flex; justify-content:space-between; align-items:center; gap:8px; }
-    .compact-btn { padding:6px 10px; font-size:0.9rem; }
+    .dialog-container {
+        border-radius:12px;
+        padding:14px;
+        background:linear-gradient(180deg,#ffffff 0%,#fbfbff 100%);
+        box-shadow:0 10px 30px rgba(17,24,39,0.06);
+        border:1px solid #e9eaf8;
+        margin: 12px 0;
+    }
+    .lang-title { font-weight:700; margin-bottom:6px; }
+    .sample-code { background:#f8f8ff; padding:8px; border-radius:8px; border:1px solid #eef2ff; }
     </style>
     """, unsafe_allow_html=True
 )
@@ -388,6 +392,9 @@ if 'last_logged_complaint_text' not in st.session_state: st.session_state.last_l
 if 'last_logged_complaint_timestamp' not in st.session_state: st.session_state.last_logged_complaint_timestamp = None
 if 'active_tab_index' not in st.session_state or not isinstance(st.session_state.active_tab_index, int):
     st.session_state.active_tab_index = 0
+# dialog fallback state (prevents expander fallback arrow)
+if 'open_dept_dialog' not in st.session_state:
+    st.session_state.open_dept_dialog = None
 
 # --- Sidebar Login ---
 st.sidebar.title("Login / Support")
@@ -429,7 +436,7 @@ with cols[1]:
 st.markdown("---")
 st.markdown("<h4 style='margin-bottom:0.4rem;'>Explore Our Complaint Categories — click Info to learn more</h4>", unsafe_allow_html=True)
 
-# Compact 3-column layout of department mini-cards with Info button that opens a modal
+# Compact 3-column layout of department mini-cards with Info button that opens a modal or inline dialog
 dept_keys = list(DEPARTMENT_COLLECTIONS.keys())
 cols = st.columns(3)
 for idx, dept in enumerate(dept_keys):
@@ -437,37 +444,67 @@ for idx, dept in enumerate(dept_keys):
     with col:
         st.markdown(f'<div class="mini-card"><div class="mini-card-title">{dept}</div><div class="mini-card-note">Tap Info for details & sample</div></div>', unsafe_allow_html=True)
         if st.button("Info", key=f"info_btn_{idx}", help="Open details dialog"):
-            # open a modal with multilingual description and sample insertion
-            modal_title = f"{dept} — Details"
+            # Try modal first; on failure set session_state for inline dialog fallback (no expander)
             try:
-                with st.modal(modal_title):
-                    # top row: language selector + close (close provided by builtin modal)
+                with st.modal(f"{dept} — Details"):
                     languages = list(DEPT_DESCRIPTIONS.get(dept, {}).keys())
-                    selected_lang = st.selectbox("Language", languages, index=0)
-                    st.markdown("---")
-                    st.markdown(f"**{selected_lang}**")
-                    st.write(DEPT_DESCRIPTIONS.get(dept, {}).get(selected_lang, "No description available."))
+                    # language selector always visible inside modal
+                    if languages:
+                        selected_lang = st.selectbox("Language", languages, index=0, key=f"modal_lang_{idx}")
+                        st.markdown("---")
+                        st.markdown(f"**{selected_lang}**")
+                        st.write(DEPT_DESCRIPTIONS.get(dept, {}).get(selected_lang, "No description available."))
+                    else:
+                        st.write("No descriptions available.")
                     st.markdown("---")
                     st.write("**Sample complaint (one-click insert):**")
                     st.code(DEPT_SAMPLES.get(dept, ""))
                     st.write("")
-                    insert_col1, insert_col2 = st.columns([2,1])
-                    with insert_col1:
-                        if st.button("Insert sample into complaint box", key=f"insert_sample_{idx}"):
-                            # Populate the current complaint text area for the current input key
+                    insert_col, close_col = st.columns([3,1])
+                    with insert_col:
+                        if st.button("Insert sample into complaint box", key=f"insert_sample_modal_{idx}"):
                             input_key = f"complaint_input_{st.session_state.complaint_input_key}"
                             st.session_state[input_key] = DEPT_SAMPLES.get(dept, "")
                             st.success("Sample inserted into complaint box.")
-                    with insert_col2:
+                    with close_col:
                         if st.button("Close", key=f"close_modal_btn_{idx}"):
-                            # just exit modal; nothing else required
                             pass
             except Exception:
-                # Fallback to expanders if st.modal not available in the environment
-                st.warning("Modal not supported in this Streamlit runtime. Showing inline details instead.")
-                st.expander(f"{dept} details (fallback)")
-                st.markdown(f"**English:** {DEPT_DESCRIPTIONS[dept].get('English','')}")
-                st.write("")
+                # Fallback: open an inline dialog (clean, no expander arrow)
+                st.session_state.open_dept_dialog = dept
+
+# Render fallback inline dialog if set (this is not an expander -> no keyboard_arrow_right icon)
+if st.session_state.open_dept_dialog:
+    sel_dept = st.session_state.open_dept_dialog
+    st.markdown('<div class="dialog-container">', unsafe_allow_html=True)
+    st.markdown(f"### {sel_dept} — Details")
+    languages = list(DEPT_DESCRIPTIONS.get(sel_dept, {}).keys())
+    lang_key = f"fallback_lang_{sel_dept}"
+    if languages:
+        if lang_key not in st.session_state:
+            st.session_state[lang_key] = languages[0]
+        # keep selection stable across reruns
+        sel_index = languages.index(st.session_state[lang_key]) if st.session_state[lang_key] in languages else 0
+        st.session_state[lang_key] = st.selectbox("Language", languages, index=sel_index, key=lang_key)
+        st.markdown("---")
+        st.markdown(f"**{st.session_state[lang_key]}**")
+        st.write(DEPT_DESCRIPTIONS.get(sel_dept, {}).get(st.session_state[lang_key], "No description available."))
+    else:
+        st.write("No descriptions available.")
+    st.markdown("---")
+    st.write("**Sample complaint (one-click insert):**")
+    st.code(DEPT_SAMPLES.get(sel_dept, ""))
+    insert_col1, insert_col2 = st.columns([3,1])
+    with insert_col1:
+        if st.button("Insert sample into complaint box", key=f"insert_sample_fallback_{sel_dept}"):
+            input_key = f"complaint_input_{st.session_state.complaint_input_key}"
+            st.session_state[input_key] = DEPT_SAMPLES.get(sel_dept, "")
+            st.success("Sample inserted into complaint box.")
+    with insert_col2:
+        if st.button("Close", key=f"close_fallback_{sel_dept}"):
+            st.session_state.open_dept_dialog = None
+    st.markdown('</div>', unsafe_allow_html=True)
+
 st.markdown("---")
 
 # --- Complaint input & submit (unchanged) ---
@@ -488,7 +525,7 @@ if submit_button:
         if (st.session_state.last_logged_complaint_text == normalized_current_complaint and
             st.session_state.last_logged_complaint_timestamp and
             (now - st.session_state.last_logged_complaint_timestamp).total_seconds() < 60):
-            st.warning(" यह शिकायत हाल ही में दोबारा सबमिट की गई है। कृपया कुछ देर बाद कोशिश करें या एक नई शिकायत दर्ज करें। (This complaint has been submitted recently. Please try again later or submit a new complaint.)")
+            st.warning(" यह शिकायत हाल में दोबारा सबमिट की गई है। कृपया कुछ देर बाद कोशिश करें या एक नई शिकायत दर्ज करें। (This complaint has been submitted recently. Please try again later or submit a new complaint.)")
             st.session_state.is_processing = False
             st.session_state.last_result = None
         else:
