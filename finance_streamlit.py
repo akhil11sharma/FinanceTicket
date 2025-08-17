@@ -1,3 +1,4 @@
+# finance_streamlit.py
 import streamlit as st
 import pandas as pd
 from textblob import TextBlob
@@ -13,8 +14,6 @@ from pymongo.errors import ConnectionFailure, OperationFailure
 from bson.objectid import ObjectId
 import io
 import xlsxwriter
-
-# For charts (install if you don't have it: pip install plotly)
 import plotly.express as px
 
 # --- Streamlit Page Configuration (Must be the first Streamlit command) ---
@@ -34,27 +33,66 @@ DEPARTMENT_COLLECTIONS = {
     'Others': 'others_complaints'
 }
 
+# --- Department multilingual descriptions ---
+def get_department_descriptions():
+    """Return dictionary of department -> language -> description."""
+    return {
+        'Credit card / Prepaid card': {
+            'English': "Handles issues related to credit and prepaid cards — billing disputes, lost/stolen cards, charges, rewards and statements.",
+            'Hindi': "क्रेडिट/प्रीपेड कार्ड से संबंधित समस्याएँ — बिल विवाद, खोया/चोरी हुआ कार्ड, चार्ज, रिवॉर्ड और स्टेटमेंट।",
+            'Marathi': "क्रेडिट/प्रीपेड कार्डशी संबंधित समस्या — बिल वाद, हरवले/चोरलेले कार्ड, चार्ज, रिवॉर्ड आणि स्टेटमेंट.",
+            'Punjabi': "ਕ੍ਰੈਡਿਟ/ਪ੍ਰੀਪੇਡ ਕਾਰਡ ਸਬੰਧੀ ਮੁੱਦੇ — ਬਿੱਲ ਵਿਵਾਦ, ਗੁੰਮ/ਚੋਰੀ ਕਾਰਡ, ਚਾਰਜ, ਇਨਾਮ ਅਤੇ ਸਟੇਟਮੈਂਟ।",
+            'Kannada': "ಕ್ರೆಡಿಟ್/ಪ್ರೀಪೇಯ್ಡ್ ಕಾರ್ಡ್ ಸಂಬಂಧಿತ ಸಮಸ್ಯೆಗಳು — ಬಿಲ್ಲಿಂಗ್ ವಿವಾದಗಳು, ಕಳೆದುಕೊಂಡ/ದೋಚಲ್ಪಟ್ಟ ಕಾರ್ಡ್, ಶುಲ್ಕಗಳು, ರಿವಾರ್ಡ್ಸ್ ಮತ್ತು ಸ್ಟೇಟ್ಮೆಂಟ್.",
+            'Malayalam': "ക്രെഡിറ്റ്/പ്രീപെയ്ഡ് കാർഡ് സംബന്ധിച്ച പ്രശ്നങ്ങൾ — ബില്ലിംഗ് വിക്ഷേപങ്ങൾ, നഷ്ടമോ മോഷ്ടിക്കപ്പെട്ട കാർഡുകൾ, ചാർജുകൾ, റിവാർഡുകൾ, സ്റ്റേറ്റ്മെന്റുകൾ."
+        },
+        'Bank account services': {
+            'English': "Account access, deposits, withdrawals, transfers, login issues, and other account management queries.",
+            'Hindi': "खाता एक्सेस, जमा, निकासी, ट्रांसफर, लॉगिन समस्याएँ और अन्य खाता प्रबंधन प्रश्न।",
+            'Marathi': "खाते प्रवेश, जमा, निकासी, ट्रान्सफर, लॉगिन समस्या आणि इतर खाते व्यवस्थापन प्रश्न.",
+            'Punjabi': "ਅਕਾਊਂਟ ਐਕਸੈਸ, ਜਮ੍ਹਾਂ, ਨਿਕਾਸ, ਟ੍ਰਾਂਸਫਰ, ਲੌਗਇਨ ਸਮੱਸਿਆਵਾਂ ਅਤੇ ਹੋਰ ਅਕਾਊਂਟ ਪ੍ਰਬੰਧਨ ਪ੍ਰਸ਼ਨ।",
+            'Kannada': "ಖಾತೆ ಪ್ರವೇಶ, ಠೇವಣಿ, ಹಿಂಪಡೆಯುವಿಕೆ, ವರ್ಗಾಯನೆ, ಲಾಗಿನ್ ಸಮಸ್ಯೆಗಳು ಮತ್ತು ಇತರೆ ಖಾತೆ ನಿರ್ವಹಣಾ ಪ್ರಶ್ನೆಗಳು.",
+            'Malayalam': "അക്കൗണ്ട് ആക്‌സസ്, നിക്ഷേപം, പിൻവിലപ്പുകൾ, കൈമാറ്റങ്ങൾ, ലോഗിൻ പ്രശ്നങ്ങൾ എന്നിവയുമായി ബന്ധപ്പെട്ട കാര്യങ്ങൾ."
+        },
+        'Theft/Dispute reporting': {
+            'English': "Fraud, unauthorized transactions, identity theft, disputes and security incidents. Priority handling recommended.",
+            'Hindi': "धोखाधड़ी, अनधिकृत लेनदेन, पहचान की चोरी, विवाद और सुरक्षा घटनाएँ। प्राथमिकता से संभालने की सलाह।",
+            'Marathi': "फraud, अनधिकृत व्यवहार, ओळख चोरी, वाद आणि सुरक्षा घटना. प्राधान्याने हाताळण्याचा सल्ला.",
+            'Punjabi': "ਧੋਖਾਧੜੀ, ਬਿਨਾਂ ਆਗਿਆ ਵਾਲੇ ਲੈਣ-ਦੇਣ, ਪਛਾਣ ਚੋਰੀ, ਵਿਵਾਦ ਅਤੇ ਸੁਰੱਖਿਆ ਘਟਨਾਵਾਂ। ਤਰਜੀਹੀ ਸੰਭਾਲ ਦੀ ਸਿਫਾਰਿਸ਼।",
+            'Kannada': "ವಂಚನೆ, ನಿರಾಕೃತ ಲೆನದेन, ಗುರುತು ಕಳವರು, ವಾದಗಳು ಮತ್ತು ಭದ್ರತಾ ಘಟನೆಗಳು. ಪ್ರಾಥಮ್ಯತೆಯಿಂದ ನಿರ್ವಹಿಸುವ ಶಿಫಾರಸು.",
+            'Malayalam': "ഫ്രൗഡ്, അനധികൃത ഇടപാട്, തിരിച്ചറിയൽ മോഷണം, വിവാദങ്ങൾ, സുരക്ഷാ സംഭവങ്ങൾ — പ്രാഥമിക കൈകര്യം നിർദ്ദേശിക്കുന്നു."
+        },
+        'Mortgages/loans': {
+            'English': "Mortgage and loan enquiries — EMI, interest rates, repayment schedules, loan approval, refinancing queries.",
+            'Hindi': "ब्याज और ऋण पूछताछ — EMI, ब्याज दरें, पुनर्भुगतान अनुसूची, ऋण स्वीकृति, रिफाइनेंसिंग प्रश्न।",
+            'Marathi': "गृहकर्ज/कर्ज संबंधित प्रश्न — EMI, व्याज दर, परतफेड वेळापत्रक, कर्ज मंजुरी, रिफायनान्सिंग प्रश्न.",
+            'Punjabi': "ਮੋਰਟਗੇਜ/ਲੋਨ ਸਵਾਲ — EMI, ਬਿਆਜ ਦਰਾਂ, ਵਾਪਸੀ ਸਮਾਂ-ਸੂਚੀ, ਲੋਨ ਮਨਜ਼ੂਰੀ, ਰੀਫਾਇਨੈਂਸਿੰਗ ਪ੍ਰਸ਼ਨ।",
+            'Kannada': "ಮಾರ್ಗೇಜ್/ಉಧಾರ ವಿಚಾರಣೆ — EMI, ಬಡ್ಡಿದರ, ಮರುಪಾವತಿ ವೇಳಾಪಟ್ಟಿ, ಸಾಲ ಅಂಗೀಕಾರ, ಮರುನಿವೇಶನ ಪ್ರಶ್ನೆಗಳು.",
+            'Malayalam': "മോർട്ട്ഗേജ്/ഋണം സംബന്ധിച്ച അന്വേഷണം — EMI, പലിശനിരക്കുകൾ, പുനരായത് പദ്ധതി, വായ്പ അംഗീകാരം, റിഫൈനാൻസിങ്."
+        },
+        'Others': {
+            'English': "Miscellaneous complaints that don't fit primary categories — will be routed to manual review.",
+            'Hindi': "अन्य शिकायतें जो मुख्य श्रेणियों में फिट नहीं होतीं — मैन्युअल समीक्षा के लिए रूट की जाएँगी।",
+            'Marathi': "इतर तक्रारी ज्या मुख्य श्रेणीत बसत नाहीत — मैन्युअल पुनरावलोकनासाठी मार्गदर्शित केल्या जातील.",
+            'Punjabi': "ਹੋਰ ਸ਼ਿਕਾਇਤਾਂ ਜੋ ਪ੍ਰਮੁੱਖ ਵਰਗਾਂ ਵਿੱਚ ਫਿੱਟ ਨਹੀਂ ਹੁੰਦੀਆਂ — ਮੈਨੁਅਲ ਸਮੀਖਿਆ ਲਈ ਰੂਟ ਕੀਤੀਆਂ ਜਾਣਗੀਆਂ।",
+            'Kannada': "ಇತರೆ ಕೊಡಂಬರಿ ಜತೆಗಿನ ದೂರುಗಳು — ಮುಖ್ಯ ವರ್ಗಗಳಿಗೆ ಹೊಂದದವು — ಕೈಯಿಂದ ಪರಿಶీలನೆಗೆ ರೂಟ್ ಮಾಡಲಾಗುವುದು.",
+            'Malayalam': "പ്രധാന വിഭാഗങ്ങളിലേക്ക് പെട്ടില്ലാത്ത വിവിധ പരാതികൾ — മാനുവൽ റിവ്യൂവിന് റൂട്ടുചെയ്യുന്നു."
+        }
+    }
+
+DEPT_DESCRIPTIONS = get_department_descriptions()
+
 # --- Database Connection and Table Creation (Cached) ---
 @st.cache_resource
 def get_mongo_connection():
-    """
-    Establishes and returns a MongoDB client connection.
-    Ensures the main and department-specific collections exist.
-    """
     try:
         client = pymongo.MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
         client.admin.command('ping')
         db = client[DB_NAME]
-        
-        # Ensure main collection exists
         if MAIN_COLLECTION_NAME not in db.list_collection_names():
             db.create_collection(MAIN_COLLECTION_NAME)
-        
-        # Ensure department-specific collections exist
         for dept_name, collection_name in DEPARTMENT_COLLECTIONS.items():
             if collection_name not in db.list_collection_names():
                 db.create_collection(collection_name)
-        
         return db
     except ConnectionFailure:
         st.error("Error: Could not connect to MongoDB Atlas. Please check your internet connection and URI.")
@@ -63,7 +101,6 @@ def get_mongo_connection():
         st.error(f"An unexpected error occurred: {e}")
         st.stop()
 
-# Initialize DB connection (this will run once at app start)
 db = get_mongo_connection()
 
 # --- Functions for Database Operations ---
@@ -82,59 +119,41 @@ def get_all_complaints_from_db():
         return pd.DataFrame()
 
 def update_checked_twice_status(complaint_id, status):
-    # This function now needs to update both the main collection and the department-specific collection
     try:
         main_collection = db[MAIN_COLLECTION_NAME]
-        
-        # First, find the document to get the predicted_department
         doc = main_collection.find_one({"_id": ObjectId(complaint_id)})
         if not doc:
             return False
-
         predicted_department = doc.get("predicted_department")
         dept_collection_name = DEPARTMENT_COLLECTIONS.get(predicted_department)
-
-        # Update main collection
         result_main = main_collection.update_one(
             {"_id": ObjectId(complaint_id)},
             {"$set": {"checked_twice": status}}
         )
-        
-        # Update department-specific collection
         if dept_collection_name:
             dept_collection = db[dept_collection_name]
             dept_collection.update_one(
                 {"_id": ObjectId(complaint_id)},
                 {"$set": {"checked_twice": status}}
             )
-
         return result_main.modified_count > 0
     except Exception as e:
         st.error(f"Error updating complaint ID {complaint_id}: {e}")
         return False
 
 def delete_complaint(complaint_id):
-    # This function now needs to delete from both the main and department-specific collections
     try:
         main_collection = db[MAIN_COLLECTION_NAME]
-        
-        # First, find the document to get the predicted_department
         doc = main_collection.find_one({"_id": ObjectId(complaint_id)})
         if not doc:
             st.warning(f"Complaint ID {complaint_id} not found in the main log. No deletion performed.")
             return False
-
         predicted_department = doc.get("predicted_department")
         dept_collection_name = DEPARTMENT_COLLECTIONS.get(predicted_department)
-
-        # Delete from main collection
         result_main = main_collection.delete_one({"_id": ObjectId(complaint_id)})
-
-        # Delete from department-specific collection
         if dept_collection_name:
             dept_collection = db[dept_collection_name]
             dept_collection.delete_one({"_id": ObjectId(complaint_id)})
-        
         return result_main.deleted_count > 0
     except Exception as e:
         st.error(f"Error deleting complaint ID {complaint_id}: {e}")
@@ -144,20 +163,15 @@ def log_to_database(data):
     try:
         main_collection = db[MAIN_COLLECTION_NAME]
         timestamp_dt = datetime.strptime(data["Timestamp"], "%Y-%m-%d %H:%M:%S")
-
-        # --- DUPLICATE CHECK ---
         normalized_complaint = data["Complaint"].strip()
         time_window = timestamp_dt - timedelta(seconds=60)
-        
         duplicate_count = main_collection.count_documents({
             "complaint": normalized_complaint,
             "timestamp": {"$gte": time_window}
         })
-
         if duplicate_count > 0:
             st.warning(" यह शिकायत हाल ही में दोबारा सबमिट की गई है। इसे दोबारा सेव नहीं किया जा रहा है। (This complaint appears to be a duplicate submitted recently. Not logging again.)")
             return False
-
         complaint_document = {
             "complaint": data["Complaint"],
             "sentiment": data["Sentiment"],
@@ -166,25 +180,16 @@ def log_to_database(data):
             "checked_twice": data["Checked Twice"],
             "timestamp": timestamp_dt
         }
-        
-        # 1. Insert into main collection
         result = main_collection.insert_one(complaint_document)
         inserted_id = result.inserted_id
-
-        # 2. Insert into department-specific collection
         predicted_department_key = data["Predicted Department"]
         dept_collection_name = DEPARTMENT_COLLECTIONS.get(predicted_department_key)
-
         if dept_collection_name:
             dept_collection = db[dept_collection_name]
-            # Create a copy of the document and insert it.
             dept_complaint_document = complaint_document.copy()
-            # It's important to use the same _id to link the documents
             dept_complaint_document['_id'] = inserted_id
             dept_collection.insert_one(dept_complaint_document)
-        
         return True
-
     except Exception as e:
         st.error(f"Error logging complaint to database: {e}")
         return False
@@ -226,15 +231,13 @@ def load_model_and_vectorizer():
         st.stop()
 model, vectorizer = load_model_and_vectorizer()
 
-# --- Text Preprocessing ---
+# --- Text Preprocessing & Classifier (unchanged) ---
 def preprocess_text(text):
-    """Performs basic text preprocessing."""
     text = str(text).lower()
     text = re.sub(r'[^a-z\s]', '', text)
     text = re.sub(r'\s+', ' ', text).strip()
     return text
 
-# --- Classifier Function ---
 def classify_complaint(text):
     analyzer = get_sentiment_analyzer()
     text_lower = text.lower()
@@ -324,93 +327,43 @@ def classify_complaint(text):
 def to_excel(df):
     output = io.BytesIO()
     writer = pd.ExcelWriter(output, engine='xlsxwriter')
-    # Rename columns for a cleaner Excel sheet
     df_for_excel = df.rename(columns={'_id': 'ID', 'complaint': 'Complaint', 'sentiment': 'Sentiment',
                                      'score': 'Score', 'predicted_department': 'Department',
                                      'checked_twice': 'Status', 'timestamp': 'Timestamp'})
     df_for_excel.to_excel(writer, index=False, sheet_name='Complaints')
     writer.close()
-    processed_data = output.getvalue()
-    return processed_data
+    return output.getvalue()
 
-
-# --- Streamlit UI Styling (kept the user's CSS) ---
+# --- Styling (kept theme but simplified for interactive cards) ---
 st.markdown(
     """
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     html, body, [class*="st-"] { font-family: 'Inter', sans-serif; }
-    .main-header {
-        font-size: 3.5em; 
-        color: #4B0082;
-        text-align: center; 
-        margin-bottom: 1.5em;
+    .main-header { font-size: 2.4em; color: #4B0082; text-align: center; margin-bottom: 0.5em; font-weight: 700; }
+    .dept-card {
+        background: linear-gradient(180deg, #EEF2FF 0%, #E9F0FF 100%);
+        border-radius: 12px;
+        padding: 18px;
+        text-align: center;
         font-weight: 700;
-        letter-spacing: -1px;
-        text-shadow: 2px 2px 5px rgba(0,0,0,0.1);
-        animation: header-fade-in 1.5s ease-out;
+        color: #2b0b5a;
+        box-shadow: 0 6px 18px rgba(99, 102, 241, 0.12);
+        border: 1px solid #C7D2FE;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        cursor: pointer;
     }
-    .logo-container { display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
-    @keyframes header-fade-in { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
-    .department-container { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 20px; }
-    .department-box { background-color: #EEF2FF; color: #4B0082; padding: 12px 20px; border-radius: 10px; font-weight: 600; text-align: center; flex: 1 1 auto; min-width: 180px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: all 0.3s ease-in-out; border: 1px solid #C7D2FE; opacity: 0; transform: translateY(20px); animation: fadeInSlideUp 0.6s forwards ease-out; }
-    .department-box:hover { background-color: #E0E7FF; box-shadow: 0 4px 10px rgba(0,0,0,0.15); transform: translateY(-5px); }
-    .department-box.highlighted { background-color: #6366F1; color: white; box-shadow: 0 0 15px 5px rgba(99, 102, 241, 0.7); transform: scale(1.05); border: 2px solid #4F46E5; animation: pulse-glow 1.5s infinite alternate; }
-    @keyframes pulse-glow { 0% { box-shadow: 0 0 5px 2px rgba(99, 102, 241, 0.4), 0 0 10px 5px rgba(79, 70, 229, 0.2); } 100% { box-shadow: 0 0 15px 5px rgba(99, 102, 241, 0.7); } }
-    .stTextArea textarea { background-color: #EFEFEF !important; border-radius: 10px !important; border: 1px solid #D1D5DB !important; padding: 12px !important; font-size: 1rem !important; color: #333333 !important; transition: all 0.2s ease-in-out; }
-    .stButton > button { width: 100%; background-color: #6366F1; color: white; font-weight: 700; padding: 12px 20px; border-radius: 10px; border: none; transition: all 0.3s ease-in-out; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    .stButton > button:hover { background-color: #4F46E5; transform: translateY(-2px); box-shadow: 0 6px 8px rgba(0,0,0,0.15); }
-    .stAlert { border-radius: 10px; }
-    .stDataFrame { border-radius: 10px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-    .stDataFrame > div { border-radius: 10px; }
-    .stDataFrame table { border-collapse: collapse; width: 100%; }
-    .stDataFrame th { background-color: #EEF2FF; color: #4B0082; font-weight: 600; padding: 10px; text-align: left; border-bottom: 2px solid #C7D2FE; }
-    .stDataFrame td { padding: 10px; border-bottom: 1px solid #E0E7FF; }
-    .stDataFrame tbody tr:nth-child(even) { background-color: #F9FAFB; }
-    .stDataFrame tbody tr:hover { background-color: #F3F4F6; }
-    .stMarkdown h2 { color: #4B0082; text-align: center; margin-top: 2em; margin-bottom: 1em; font-weight: 600; font-size: 1.8em; }
-    .stMetric { background-color: #F0F4F8; border-radius: 10px; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: center; }
-    .stMetric label { font-weight: 500; color: #6B7280; }
-    .stMetric .css-1q8dd3e { font-size: 1.8em; font-weight: 700; }
-    .loader-container { display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 20px auto; min-height: 100px; }
-    .loader { --s: 20px; --_d: calc(0.353*var(--s)); width: calc(var(--s) + var(--_d)); aspect-ratio: 1; display: grid; margin: 0 auto; }
-    .loader:before, .loader:after { content: ""; grid-area: 1/1; clip-path: polygon(var(--_d) 0,100% 0,100% calc(100% - var(--_d)),calc(100% - var(--_d)) 100%,0 100%,0 var(--_d)); background: conic-gradient(from -90deg at calc(100% - var(--_d)) var(--_d), #fff 135deg,#666 0 270deg,#aaa 0); animation: l6 2s infinite; }
-    .loader:after { animation-delay:-1s; }
-    @keyframes l6{ 0%  {transform:translate(0,0)} 25% {transform:translate(30px,0)} 50% {transform:translate(30px,30px)} 75% {transform:translate(0,30px)} 100%{transform:translate(0,0)} }
-    .loader-text { font-size: 1.1em; font-weight: 600; color: #4B0082; text-align: center; margin-top: 10px; }
-    .stSidebar .stForm { background-color: #EEF2FF; padding: 25px; border-radius: 15px; box-shadow: 0 6px 15px rgba(0,0,0,0.15); margin-top: 25px; transition: all 0.3s ease-in-out; border: 1px solid #C7D2FE; }
-    .stSidebar .stForm:hover { box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
-    .stSidebar .stForm label { color: #4B0082; font-weight: 600; margin-bottom: 8px; display: block; }
-    .stSidebar .stTextInput > div > div > input { background-color: #FFFFFF; border-radius: 8px !important; border: 1px solid #D1D5DB !important; padding: 10px 12px !important; color: #333333 !important; transition: all 0.2s ease-in-out; }
-    .stSidebar .stTextInput > div > div > input:focus { border-color: #6366F1 !important; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3) !important; outline: none; }
-    .stSidebar .stForm .stButton > button { width: 100%; background-color: #6366F1; color: white; font-weight: 700; padding: 12px 20px; border-radius: 8px; border: none; transition: all 0.2s ease-in-out; box-shadow: 0 4px 8px rgba(0,0,0,0.2); margin-top: 20px; letter-spacing: 0.5px; }
-    .stSidebar .stForm .stButton > button:hover { background-color: #4F46E5; transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.25); }
-    .stSidebar .stForm .stButton > button:active { background-color: #3B34AC; transform: translateY(1px) scale(0.98); box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
-    .stMetric > div[data-testid="stMetricValue"] { font-size: 2em; }
-    .stExpander span[data-testid="stExpanderToggleIcon"] { color: #4B0082; }
-    .stExpander button[data-testid="stExpanderToggle"] { background-color: #EEF2FF; border-radius: 10px; border: 1px solid #C7D2FE; padding: 10px 15px; transition: all 0.2s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.05); color: #4B0082; font-weight: 600; margin-bottom: 10px; }
-    .stExpander button[data-testid="stExpanderToggle"]:hover { background-color: #E0E7FF; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-    .result-card-container { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin-top: 20px; }
-    .result-card { background-color: #F8F8FF; border-radius: 15px; padding: 20px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); flex: 1 1 calc(33% - 20px); min-width: 250px; max-width: 350px; transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out; opacity: 0; transform: translateY(20px); animation: fadeInSlideUp 0.6s forwards ease-out; }
-    .result-card h4 { color: #4B0082; margin-bottom: 10px; font-weight: 600; font-size: 1.2em; }
-    .result-value { font-size: 2.2em; font-weight: 800; color: #6366F1; word-break: break-word; }
-    .result-value.positive { color: #10B981; }
-    .result-value.negative { color: #EF4444; }
-    .result-value.neutral { color: #F59E0B; }
-    .result-card small { display: block; margin-top: 10px; color: #6B7280; font-size: 0.85em; }
-    .stSubmitButton > button { animation: pulseButton 2s infinite ease-in-out; }
-    @keyframes pulseButton { 0% { box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 0 0 0 rgba(99, 102, 241, 0.4); } 70% { box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 0 0 10px rgba(99, 102, 241, 0); } 100% { box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 0 0 0 rgba(99, 102, 241, 0); } }
-    .stTabs [data-baseweb="tab-list"] { gap: 24px; justify-content: center; }
-    .stTabs [data-baseweb="tab"] { height: 50px; white-space: nowrap; border-radius: 10px 10px 0 0; margin-bottom: -3px; background-color: #EEF2FF; border: 1px solid #C7D2FE; border-bottom: none; color: #4B0082; font-weight: 600; font-size: 1.1em; transition: all 0.2s ease-in-out; }
-    .stTabs [data-baseweb="tab"]:hover { background-color: #E0E7FF; color: #3B34AC; }
-    .stTabs [aria-selected="true"] { background-color: #6366F1; color: white; border: 1px solid #6366F1; border-bottom: none; box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3); }
-    .stTabs [data-baseweb="tab-panel"] { border: 1px solid #C7D2FE; border-radius: 0 0 10px 10px; padding: 20px; background-color: #F8F8FF; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+    .dept-card:hover { transform: translateY(-6px); box-shadow: 0 10px 25px rgba(99, 102, 241, 0.16); }
+    .dept-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 16px; }
+    .lang-title { font-weight: 700; margin-top: 10px; color: #3B366A; }
+    .lang-block { background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #f0eff7; margin-bottom: 8px; }
+    .small-note { color: #6B7280; font-size: 0.95em; }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-# --- Session State Initialization for Login and Tab ---
+# --- Session State Initialization ---
 if 'logged_in' not in st.session_state: st.session_state.logged_in = False
 if 'username' not in st.session_state: st.session_state.username = ''
 if 'last_result' not in st.session_state: st.session_state.last_result = None
@@ -421,8 +374,10 @@ if 'last_logged_complaint_text' not in st.session_state: st.session_state.last_l
 if 'last_logged_complaint_timestamp' not in st.session_state: st.session_state.last_logged_complaint_timestamp = None
 if 'active_tab_index' not in st.session_state or not isinstance(st.session_state.active_tab_index, int):
     st.session_state.active_tab_index = 0
+if 'selected_dept' not in st.session_state:
+    st.session_state.selected_dept = None
 
-# --- Login/Logout Functionality in Sidebar ---
+# --- Sidebar Login ---
 st.sidebar.title("Login / Support")
 if st.session_state.logged_in:
     st.sidebar.success(f"Logged in as {st.session_state.username}")
@@ -440,8 +395,8 @@ else:
         login_button = st.form_submit_button("Login")
         if login_button:
             with st.sidebar.empty():
-                st.markdown("""<div class="loader-container"><div class="loader"></div><div class="loader-text">Logging in...</div></div>""", unsafe_allow_html=True)
-                time.sleep(4)
+                st.markdown("""<div style="text-align:center"><div class="loader"></div><div class="loader-text">Logging in...</div></div>""", unsafe_allow_html=True)
+                time.sleep(1.0)
             if (username == "Sharma.akhil" and password == "123456789") or (username == "Bhalu_ka_pati" and password == "Bhalu_loves_me"):
                 st.session_state.logged_in = True
                 st.session_state.username = username
@@ -450,18 +405,52 @@ else:
             else:
                 st.sidebar.error("Invalid username or password.")
 
-# --- Main App Content ---
-st.image("Gemini_Generated_Image_sc8m3ysc8m3ysc8m.png", width=250)
-st.markdown('<p class="main-header">Customer Complaint Classification</p>', unsafe_allow_html=True)
+# --- Header & Categories Board ---
+cols = st.columns([1, 3, 1])
+with cols[1]:
+    # optional logo
+    try:
+        st.image("Gemini_Generated_Image_sc8m3ysc8m3ysc8m.png", width=120)
+    except Exception:
+        pass
+    st.markdown('<p class="main-header">Customer Complaint Classification</p>', unsafe_allow_html=True)
 
 st.markdown("---")
-st.markdown("<h3>Explore Our Complaint Categories</h3>", unsafe_allow_html=True)
-st.markdown('<div class="department-container">', unsafe_allow_html=True)
-for dept in DEPARTMENT_COLLECTIONS.keys():
-    st.markdown(f'<div class="department-box">{dept}</div>', unsafe_allow_html=True)
+st.markdown("<h3 style='text-align:left'>Explore Our Complaint Categories</h3>", unsafe_allow_html=True)
+
+# Interactive department grid: render as clickable buttons
+st.markdown('<div class="dept-grid">', unsafe_allow_html=True)
+# We'll create one fake "button" by using st.button for each department but style with markdown wrapper
+for i, dept in enumerate(DEPARTMENT_COLLECTIONS.keys()):
+    btn_key = f"dept_btn_{i}"
+    # Render a styled div with a hidden st.button underneath for accessibility/control
+    # Use columns to keep structure consistent
+    # Create one column per dept in a responsive grid using markdown card and an actual button under the hood.
+    card_html = f"""<div class="dept-card">{dept}</div>"""
+    # We can't attach onclick JS reliably cross Streamlit versions, so render the card and then a small hidden button.
+    st.markdown(card_html, unsafe_allow_html=True)
+    # invisible button (but still clickable): actually show a small transparent button right after card to catch clicks
+    # To keep UI tidy, we show a real button with label "Open" but visually hidden via CSS could be complex.
+    # Simpler UX: show the card and then a visible "Learn" button below it for accessibility.
+    if st.button(f"Learn about '{dept}'", key=btn_key):
+        st.session_state.selected_dept = dept
 st.markdown('</div>', unsafe_allow_html=True)
 
-# Complaint Input
+# If user clicked a department, show the multilingual dialog (expander)
+if st.session_state.selected_dept:
+    sel = st.session_state.selected_dept
+    st.markdown(f"### About: {sel}")
+    # show a compact dialog-like block with language tabs (simple stacked)
+    for lang, desc in DEPT_DESCRIPTIONS.get(sel, {}).items():
+        st.markdown(f'<div class="lang-block"><div class="lang-title">{lang}</div><div>{desc}</div></div>', unsafe_allow_html=True)
+    # Provide quick actions: route sample text, close
+    st.markdown('<div style="display:flex;gap:8px;margin-top:8px;">', unsafe_allow_html=True)
+    if st.button("Close", key="close_dept_info"):
+        st.session_state.selected_dept = None
+    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown("---")
+
+# --- Complaint input & submit (unchanged) ---
 complaint_text = st.text_area(
     "Write Your Complaint:",
     height=150,
@@ -490,189 +479,123 @@ if submit_button:
     else:
         st.warning("कृपया अपनी शिकायत दर्ज करें। (Please enter your complaint before submitting.)")
 
-# --- Conditional Processing Block (runs only when is_processing is True) ---
 if st.session_state.is_processing:
-    loader_placeholder.markdown("""<div class="loader-container"><div class="loader"></div><div class="loader-text">Analyzing complaint and routing...</div></div>""", unsafe_allow_html=True)
-    time.sleep(4) 
+    loader_placeholder.markdown(
+        """
+        <div style="text-align:center">
+            <div class="loader"></div>
+            <div class="loader-text">Analyzing complaint and routing...</div>
+        </div>
+        """, unsafe_allow_html=True
+    )
+    time.sleep(2.0)
     result = classify_complaint(st.session_state.current_complaint_text)
     if log_to_database(result):
         st.session_state.last_result = result
         st.session_state.last_logged_complaint_text = result["Complaint"].strip()
         st.session_state.last_logged_complaint_timestamp = datetime.now()
         loader_placeholder.empty()
-        st.success(f" शिकायत सबमिट हो गई है और **{result['Predicted Department']}** विभाग को वर्गीकृत कर दी गई है। आपके समय के लिए धन्यवाद! (Complaint submitted and classified to **{result['Predicted Department']}** department. Thank you for your time!)")
+        st.success(f" शिकायत सबमिट हो गई है और **{result['Predicted Department']}** विभाग को वर्गीकृत कर दी गई है। (Complaint submitted and classified to **{result['Predicted Department']}**.)")
     else:
         st.session_state.is_processing = False
         loader_placeholder.empty()
-        st.error("शिकायत को डेटाबेस में लॉग करने में विफलता। कृपया पुन: प्रयास करें। (Failed to log complaint to database. Please try again.)")
+        st.error("शिकायत को डेटाबेस में लॉग करने में विफलता। कृपया पुन: प्रयास करें।")
     st.session_state.is_processing = False
 
+# Show the last classification result
 if st.session_state.last_result and not st.session_state.is_processing:
     st.markdown("---")
     st.markdown('<h2>Classification Result</h2>', unsafe_allow_html=True)
-    result_data = st.session_state.last_result
-    sentiment_class = result_data['Sentiment'].lower()
-    st.markdown('<div class="result-card-container">', unsafe_allow_html=True)
+    rd = st.session_state.last_result
+    sentiment_class = rd['Sentiment'].lower()
     st.markdown(f"""
-    <div class="result-card">
-        <h4>Sentiment</h4>
-        <div class="result-value {sentiment_class}">{result_data['Sentiment']}</div>
-        <small>Overall emotional tone of the complaint.</small>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <div style="background:#F8F8FF;padding:14px;border-radius:10px;min-width:180px;">
+            <strong>Sentiment</strong><div style="font-size:1.3em">{rd['Sentiment']}</div>
+        </div>
+        <div style="background:#F8F8FF;padding:14px;border-radius:10px;min-width:180px;">
+            <strong>Score</strong><div style="font-size:1.3em">{rd['Score']:.4f}</div>
+        </div>
+        <div style="background:#F8F8FF;padding:14px;border-radius:10px;min-width:180px;">
+            <strong>Department</strong><div style="font-size:1.3em">{rd['Predicted Department']}</div>
+        </div>
     </div>
     """, unsafe_allow_html=True)
-    st.markdown(f"""
-    <div class="result-card">
-        <h4>Sentiment Score</h4>
-        <div class="result-value">{result_data['Score']:.4f}</div>
-        <small>VADER compound score (-1.0 to 1.0).</small>
-    </div>
-    """, unsafe_allow_html=True)
-    st.markdown(f"""
-    <div class="result-card">
-        <h4>Predicted Department</h4>
-        <div class="result-value">{result_data['Predicted Department']}</div>
-        <small>Automatically routed to this department.</small>
-    </div>
-    """, unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.info(f"**Original Complaint:** {result_data['Complaint']}")
+    st.info(f"**Original Complaint:** {rd['Complaint']}")
 
-# --- New: About/Help Section (Accessible to all users) ---
+# --- About / Help ---
 st.markdown("---")
-st.markdown('<h2>About This App / Help</h2>', unsafe_allow_html=True)
-with st.expander("Learn more about the Complaint Classification App", expanded=False):
+with st.expander("About This App / Help", expanded=False):
     st.markdown("""
-    **Purpose of the App:**
-    This application is designed to efficiently classify customer complaints into predefined departmental categories and analyze their sentiment (Positive, Negative, Neutral). It helps businesses quickly route customer feedback to the correct team for action and gain insights into overall customer sentiment.
-    **How Classification Works:**
-    Our system employs a hybrid approach for complaint classification:
-    1.  **Rule-Based Keywords:** A primary layer uses a curated list of keywords to identify critical complaints (e.g., 'fraud', 'stolen', 'unauthorized') and assign them directly to the 'Theft/Dispute reporting' department, often overriding other classifications and marking sentiment as 'Negative'.
-    2.  **VADER Sentiment Analysis:** The VADER (Valence Aware Dictionary and sEntiment Reasoner) lexicon is used to determine the sentiment (positive, negative, or neutral) of the complaint text. It's particularly effective for social media text and general short texts.
-    3.  **Machine Learning Model:** For complaints that don't strongly match predefined categories or specific keywords, a pre-trained Machine Learning model (trained on historical complaint data) analyzes the text and predicts the most suitable department from our 5 core categories. This model leverages patterns and features learned from past complaints to make intelligent routing decisions.
-    The combination of rules, sentiment, and machine learning ensures a robust and accurate classification process.
-    **Frequently Asked Questions (FAQ):**
-    * **Q: How accurate is the classification?**
-        * A: While highly effective, no automated system is 100% accurate. The model is continuously improved with more data. The 'Checked Twice' status in the support portal allows manual verification.
-    * **Q: What if a complaint doesn't fit any main department?**
-        * A: Complaints that don't strongly match predefined categories or specific keywords are routed to the 'Others' department for manual review.
-    * **Q: Can I pre-select a department?**
-        * A: The categories displayed are for informational purposes. The system automatically classifies the complaint once submitted.
+    This application classifies customer complaints into departmental categories and analyzes sentiment.
+    Hybrid approach: rule-based keywords + VADER + ML fallback model.
+    Use the interactive board above to understand what each department handles (available in multiple languages).
     """)
 
-# --- Company Support Portal (after login) ---
+# --- Admin Portal (visible after login) ---
 if st.session_state.logged_in:
     st.markdown("---")
     st.markdown('<h2>Company Support Portal: Overview</h2>', unsafe_allow_html=True)
     st.write(f"Welcome, **{st.session_state.username}**! Here's an overview of customer complaints and tools to manage them.")
-    refresh_button_placeholder = st.empty()
-    with refresh_button_placeholder.container():
-        if st.button("Refresh All Portal Data", key="support_refresh_all_button", help="Reloads all data in the portal from the database."):
-            with st.empty():
-                st.markdown("""<div class="loader-container"><div class="loader"></div><div class="loader-text">Refreshing data...</div></div>""", unsafe_allow_html=True)
-                time.sleep(4) 
-            st.cache_data.clear()
-            st.rerun()
-    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("Refresh All Portal Data", key="support_refresh_all_button"):
+        st.cache_data.clear()
+        st.rerun()
     all_complaints_df = get_all_complaints_from_db()
 
-    # The original st.tabs component is used here.
-    tab1, tab2 = st.tabs(["📊 Dashboard & Visualizations", "📝 Manage & Update Complaints"], index=st.session_state.active_tab_index)
-    
-    with tab1:
+    # Use radio to emulate tabs so active tab can be controlled programmatically
+    TAB_LABELS = ["📊 Dashboard & Visualizations", "📝 Manage & Update Complaints"]
+    selected_tab_label = st.radio("", TAB_LABELS, index=st.session_state.active_tab_index, horizontal=True, key="main_tabs_radio")
+    st.session_state.active_tab_index = TAB_LABELS.index(selected_tab_label)
+
+    if selected_tab_label == TAB_LABELS[0]:
         if not all_complaints_df.empty:
             st.markdown("<h3>Complaint Analytics</h3>", unsafe_allow_html=True)
             total_complaints = len(all_complaints_df)
             negative_count = all_complaints_df[all_complaints_df['sentiment'] == 'Negative'].shape[0]
             pending_review_count = all_complaints_df[all_complaints_df['checked_twice'] == 'Pending Review'].shape[0]
-            col_met1, col_met2, col_met3 = st.columns(3)
-            with col_met1:
-                st.metric("Total Complaints", total_complaints)
-            with col_met2:
-                st.metric("Negative Complaints", negative_count)
-            with col_met3:
-                st.metric("Pending Review", pending_review_count)
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("<h3>Visual Trends</h3>", unsafe_allow_html=True)
+            col1, col2, col3 = st.columns(3)
+            with col1: st.metric("Total Complaints", total_complaints)
+            with col2: st.metric("Negative Complaints", negative_count)
+            with col3: st.metric("Pending Review", pending_review_count)
             chart_col1, chart_col2 = st.columns(2)
             with chart_col1:
-                st.subheader("Complaints by Department")
                 department_counts = all_complaints_df['predicted_department'].value_counts().reset_index()
                 department_counts.columns = ['Department', 'Count']
-                fig_dept = px.bar(department_counts, x='Department', y='Count',
-                                 color='Department',
-                                 title='Distribution of Complaints by Department',
-                                 labels={'Count': 'Number of Complaints'},
-                                 template='plotly_white')
+                fig_dept = px.bar(department_counts, x='Department', y='Count', color='Department', template='plotly_white')
                 st.plotly_chart(fig_dept, use_container_width=True)
             with chart_col2:
-                st.subheader("Overall Sentiment Distribution")
                 sentiment_counts = all_complaints_df['sentiment'].value_counts().reset_index()
                 sentiment_counts.columns = ['Sentiment', 'Count']
-                fig_sent = px.pie(sentiment_counts, values='Count', names='Sentiment',
-                                 title='Sentiment Breakdown',
-                                 color='Sentiment',
-                                 color_discrete_map={'Positive': '#10B981', 'Negative': '#EF4444', 'Neutral': '#F59E0B'},
-                                 template='plotly_white')
+                fig_sent = px.pie(sentiment_counts, values='Count', names='Sentiment', template='plotly_white')
                 st.plotly_chart(fig_sent, use_container_width=True)
-            st.subheader("Complaint Volume Over Time")
             daily_counts = all_complaints_df.groupby(all_complaints_df['timestamp'].dt.date).size().reset_index(name='Count')
             daily_counts.columns = ['Date', 'Count']
-            fig_time = px.line(daily_counts, x='Date', y='Count',
-                               title='Daily Complaint Volume',
-                               labels={'Count': 'Number of Complaints', 'Date': 'Date'},
-                               template='plotly_white')
+            fig_time = px.line(daily_counts, x='Date', y='Count', template='plotly_white')
             st.plotly_chart(fig_time, use_container_width=True)
         else:
             st.info("No data available for analytics. Submit some complaints first!")
-    
-    with tab2:
+    else:
+        # Manage & Update Complaints
         st.markdown("<h3>Search & Filter Complaints</h3>", unsafe_allow_html=True)
         with st.expander("Filter Options", expanded=True):
-            filter_col1, filter_col2, filter_col3 = st.columns(3)
-            with filter_col1:
-                search_query = st.text_input(
-                    "Keyword Search in Complaint",
-                    key="search_keyword_filter_tab",
-                    help="Type keywords to filter complaints (e.g., 'refund', 'delay', 'fraud'). Case-insensitive."
-                )
-            with filter_col2:
-                selected_department = st.selectbox(
-                    "Filter by Department",
-                    ["All"] + list(DEPARTMENT_COLLECTIONS.keys()),
-                    key="filter_department_tab",
-                    help="Select a specific department to view complaints routed there."
-                )
-            with filter_col3:
-                selected_sentiment = st.multiselect(
-                    "Filter by Sentiment",
-                    ["Positive", "Negative", "Neutral"],
-                    default=[],
-                    key="filter_sentiment_tab",
-                    help="Choose one or more sentiment types to display."
-                )
-            date_col1, date_col2 = st.columns(2)
+            f1, f2, f3 = st.columns(3)
+            with f1:
+                search_query = st.text_input("Keyword Search in Complaint", key="search_keyword_filter_tab")
+            with f2:
+                selected_department = st.selectbox("Filter by Department", ["All"] + list(DEPARTMENT_COLLECTIONS.keys()), key="filter_department_tab")
+            with f3:
+                selected_sentiment = st.multiselect("Filter by Sentiment", ["Positive", "Negative", "Neutral"], default=[], key="filter_sentiment_tab")
+            date_c1, date_c2 = st.columns(2)
             if not all_complaints_df.empty:
                 min_date = all_complaints_df['timestamp'].min().date()
                 max_date = all_complaints_df['timestamp'].max().date()
             else:
                 min_date = datetime.today().date()
                 max_date = datetime.today().date()
-            with date_col1:
-                start_date = st.date_input(
-                    "Start Date",
-                    value=min_date,
-                    key="filter_start_date_tab",
-                    help="Set the earliest date for complaints to display."
-                )
-            with date_col2:
-                end_date = st.date_input(
-                    "End Date",
-                    value=max_date,
-                    key="filter_end_date_tab",
-                    help="Set the latest date for complaints to display."
-                )
-            st.info("Adjust the filters above, and the table below will update automatically.")
+            with date_c1:
+                start_date = st.date_input("Start Date", value=min_date, key="filter_start_date_tab")
+            with date_c2:
+                end_date = st.date_input("End Date", value=max_date, key="filter_end_date_tab")
         filtered_df_for_tab = all_complaints_df.copy()
         if search_query:
             filtered_df_for_tab = filtered_df_for_tab[filtered_df_for_tab['complaint'].str.contains(search_query, case=False, na=False)]
@@ -681,88 +604,48 @@ if st.session_state.logged_in:
         if selected_sentiment:
             filtered_df_for_tab = filtered_df_for_tab[filtered_df_for_tab['sentiment'].isin(selected_sentiment)]
         if not filtered_df_for_tab.empty:
-            filtered_df_for_tab = filtered_df_for_tab[
-                (filtered_df_for_tab['timestamp'].dt.date >= start_date) &
-                (filtered_df_for_tab['timestamp'].dt.date <= end_date)
-            ]
+            filtered_df_for_tab = filtered_df_for_tab[(filtered_df_for_tab['timestamp'].dt.date >= start_date) & (filtered_df_for_tab['timestamp'].dt.date <= end_date)]
         st.write(f"Displaying {len(filtered_df_for_tab)} complaints after filtering in this tab:")
-        display_df_tab = filtered_df_for_tab.rename(columns={'_id': 'ID'})
-        st.dataframe(display_df_tab.drop(columns=['_id'], errors='ignore'), use_container_width=True, hide_index=True)
+        st.dataframe(filtered_df_for_tab.rename(columns={'_id': 'ID'}).drop(columns=['_id'], errors='ignore'), use_container_width=True, hide_index=True)
+
         st.markdown("---")
         st.markdown("<h3>Update Complaint Status</h3>", unsafe_allow_html=True)
-        
-        # Create a more informative list for the selectbox
-        if not filtered_df_for_tab.empty:
-            available_ids_for_update = filtered_df_for_tab['_id'].tolist()
-        else:
-            available_ids_for_update = []
-        
-        selected_complaint_id_str_update = st.selectbox(
-            "Select Complaint ID to Update (from table above)",
-            [""] + available_ids_for_update,
-            key="select_complaint_id_to_update_tab",
-            help="Choose a complaint ID from the table above to view its details and update its status."
-        )
-
-        if selected_complaint_id_str_update and selected_complaint_id_str_update != "":
-            selected_complaint_id_update = selected_complaint_id_str_update
-            current_complaint_data_row_update = all_complaints_df[all_complaints_df['_id'] == selected_complaint_id_update]
-            if not current_complaint_data_row_update.empty:
-                current_complaint_data_update = current_complaint_data_row_update.iloc[0]
-                st.info(f"**Complaint ID {selected_complaint_id_update}:** {current_complaint_data_update['complaint']}")
-                st.write(f"**Current Status:** {current_complaint_data_update['checked_twice']}")
+        available_ids_for_update = filtered_df_for_tab['_id'].tolist() if not filtered_df_for_tab.empty else []
+        selected_complaint_id_str_update = st.selectbox("Select Complaint ID to Update (from table above)", [""] + available_ids_for_update, key="select_complaint_id_to_update_tab")
+        if selected_complaint_id_str_update:
+            current_row = all_complaints_df[all_complaints_df['_id'] == selected_complaint_id_str_update]
+            if not current_row.empty:
+                row = current_row.iloc[0]
+                st.info(f"**Complaint ID {selected_complaint_id_str_update}:** {row['complaint']}")
+                st.write(f"**Current Status:** {row['checked_twice']}")
                 status_options = ["Pending Review", "Reviewed - Action Taken", "Reviewed - No Action Needed", "Resolved"]
                 try:
-                    current_status_index_update = status_options.index(current_complaint_data_update['checked_twice'])
+                    current_index = status_options.index(row['checked_twice'])
                 except ValueError:
-                    current_status_index_update = 0
-                new_status = st.radio(
-                    "Set New Status:",
-                    status_options,
-                    index=current_status_index_update,
-                    key=f"status_radio_tab_{selected_complaint_id_update}",
-                    help="Select the appropriate status for this complaint after review."
-                )
-                if st.button(f"Update Status for ID {selected_complaint_id_update}", key=f"update_button_tab_{selected_complaint_id_update}"):
-                    with st.empty():
-                        st.markdown("""<div class="loader-container"><div class="loader"></div><div class="loader-text">Updating status...</div></div>""", unsafe_allow_html=True)
-                        time.sleep(4) 
-                    if update_checked_twice_status(selected_complaint_id_update, new_status):
+                    current_index = 0
+                new_status = st.radio("Set New Status:", status_options, index=current_index, key=f"status_radio_tab_{selected_complaint_id_str_update}")
+                if st.button(f"Update Status for ID {selected_complaint_id_str_update}", key=f"update_button_tab_{selected_complaint_id_str_update}"):
+                    if update_checked_twice_status(selected_complaint_id_str_update, new_status):
                         st.session_state.active_tab_index = 1
-                        st.success(f"Status for Complaint ID {selected_complaint_id_update} updated to '{new_status}'.")
+                        st.success(f"Status for Complaint ID {selected_complaint_id_str_update} updated to '{new_status}'.")
                         st.cache_data.clear()
                         st.rerun()
                     else:
                         st.session_state.active_tab_index = 1
                         st.error("Failed to update status.")
                         st.rerun()
-            else:
-                st.warning("Selected Complaint ID not found.")
-
         st.markdown("---")
         st.markdown("<h3>Delete Complaint</h3>", unsafe_allow_html=True)
-        available_ids_for_delete = filtered_df_for_tab['_id'].tolist()
-        selected_complaint_id_str_delete = st.selectbox(
-            "Select Complaint to Delete",
-            [""] + available_ids_for_delete,
-            key="select_complaint_id_to_delete_tab",
-            help="**WARNING:** Deleting a complaint is irreversible. Select carefully."
-        )
-
-        if selected_complaint_id_str_delete and selected_complaint_id_str_delete != "":
-            selected_complaint_id_delete = selected_complaint_id_str_delete
-            complaint_to_delete_row = all_complaints_df[all_complaints_df['_id'] == selected_complaint_id_delete]
-            
-            if not complaint_to_delete_row.empty:
-                st.error(f"You are about to DELETE Complaint ID {selected_complaint_id_delete}: \"{complaint_to_delete_row.iloc[0]['complaint'][:50]}...\"")
-                confirm_delete = st.checkbox(f"I understand this action cannot be undone and wish to delete Complaint ID {selected_complaint_id_delete}.", key=f"confirm_delete_{selected_complaint_id_delete}")
-                
+        available_ids_for_delete = filtered_df_for_tab['_id'].tolist() if not filtered_df_for_tab.empty else []
+        selected_complaint_id_str_delete = st.selectbox("Select Complaint to Delete", [""] + available_ids_for_delete, key="select_complaint_id_to_delete_tab")
+        if selected_complaint_id_str_delete:
+            complaint_row = all_complaints_df[all_complaints_df['_id'] == selected_complaint_id_str_delete]
+            if not complaint_row.empty:
+                st.error(f"You are about to DELETE Complaint ID {selected_complaint_id_str_delete}: \"{complaint_row.iloc[0]['complaint'][:80]}...\"")
+                confirm_delete = st.checkbox(f"I understand this action cannot be undone and wish to delete Complaint ID {selected_complaint_id_str_delete}.", key=f"confirm_delete_{selected_complaint_id_str_delete}")
                 if confirm_delete:
-                    if st.button(f"CONFIRM DELETE Complaint ID {selected_complaint_id_delete}", key=f"delete_button_final_{selected_complaint_id_delete}"):
-                        with st.empty():
-                            st.markdown("""<div class="loader-container"><div class="loader"></div><div class="loader-text">Deleting complaint...</div></div>""", unsafe_allow_html=True)
-                            time.sleep(4) 
-                        if delete_complaint(selected_complaint_id_delete):
+                    if st.button(f"CONFIRM DELETE Complaint ID {selected_complaint_id_str_delete}", key=f"delete_button_final_{selected_complaint_id_str_delete}"):
+                        if delete_complaint(selected_complaint_id_str_delete):
                             st.session_state.active_tab_index = 1
                             st.success("Complaint deleted successfully!")
                             st.cache_data.clear()
@@ -771,5 +654,3 @@ if st.session_state.logged_in:
                             st.session_state.active_tab_index = 1
                             st.error("Deletion failed.")
                             st.rerun()
-            else:
-                st.warning("Selected Complaint ID for deletion not found.")
