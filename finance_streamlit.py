@@ -752,7 +752,7 @@ else:
                 st.sidebar.error("Invalid username or password.")
 # --- Main App Content ---
 # Add the logo here, just above the main header
-st.image("Gemini_Generated_Image_sc8m3ysc8m3ysc8m.png", width=250)
+st.image("Gemini_Generated_Image_sc8m3ysc8m3ysc8m.png", width=100)
 st.markdown('<p class="main-header">Customer Complaint Classification</p>', unsafe_allow_html=True)
 
 # --- Department Categories ---
